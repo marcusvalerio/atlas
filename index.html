@@ -144,6 +144,9 @@
   /* ---------- TRAIN ---------- */
   .exercise{ padding-top:22px; margin-top:0; border-top:1px solid var(--line); }
   .exercise:first-child{ border-top:0; padding-top:0; }
+  .emptystate{ padding:36px 0 30px; }
+  .emptystate-title{ font-family:'Gabarito'; font-weight:700; font-size:19px; margin-bottom:8px; }
+  .emptystate-sub{ font-size:13px; color:var(--mute); line-height:1.5; max-width:240px; }
 
   .exmedia{ display:flex; align-items:center; gap:14px; margin-bottom:6px; }
   .thumb{
@@ -323,22 +326,22 @@
       <div class="hero-stat">
         <div class="label">Volume — esta semana</div>
         <div class="value"><span id="volNum">0</span><span class="unit">kg</span></div>
-        <div class="delta">↑ 8% acima da média das últimas 4 semanas</div>
+        <div class="delta" id="volDelta">Registre seu primeiro treino para começar a curva.</div>
       </div>
 
       <div class="stat-grid">
         <div class="cell"><div class="num" id="numTreinos">0</div><div class="lbl">Treinos<br>concluídos</div></div>
         <div class="cell"><div class="num" id="numSeq">0</div><div class="lbl">Dias de<br>sequência</div></div>
-        <div class="cell"><div class="num">52<span style="font-size:14px;">min</span></div><div class="lbl">Duração<br>média</div></div>
+        <div class="cell"><div class="num" id="numDur">—</div><div class="lbl">Duração<br>média</div></div>
       </div>
 
       <div class="next-card tapable" role="button" tabindex="0" onclick="goTab('train')">
         <div class="row1">
-          <div class="title">Próximo treino</div>
+          <div class="title">Começar treino</div>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="focus"><b>Peito</b> · <b>Ombro</b> · <b>Tríceps</b></div>
-        <div class="meta"><span>6 exercícios</span><span>Estimativa 50 min</span></div>
+        <div class="focus">Nenhum treino cadastrado ainda</div>
+        <div class="meta"><span>Toque para adicionar exercícios</span></div>
       </div>
     </div>
 
@@ -367,15 +370,17 @@
     <div class="view hidden" id="view-progress" style="display:none;">
       <div class="eyebrow"><span class="dash"></span>03 — PROGRESSO</div>
       <h1 class="headline">Sua curva
-        <span class="sub">Volume total, últimos 7 dias — toque numa barra</span>
+        <span class="sub">Volume total, últimos 7 dias</span>
       </h1>
 
       <div class="chart" id="chart"></div>
+      <div class="emptystate-sub" style="margin-top:-4px; margin-bottom:8px;">Sem dados ainda — a curva aparece a partir do seu primeiro treino registrado.</div>
 
       <div class="eyebrow" style="margin-top:30px;"><span class="dash"></span>RECORDES PESSOAIS</div>
-      <div class="pr-item"><div><div class="exn">Supino reto — barra</div><div class="prd">12 de junho</div></div><div class="prv">82<span>kg</span></div></div>
-      <div class="pr-item"><div><div class="exn">Extensão de tríceps</div><div class="prd">28 de junho</div></div><div class="prv">32<span>kg</span></div></div>
-      <div class="pr-item"><div><div class="exn">Agachamento livre</div><div class="prd">1 de julho</div></div><div class="prv">104<span>kg</span></div></div>
+      <div class="emptystate">
+        <div class="emptystate-title">Nenhum recorde ainda.</div>
+        <div class="emptystate-sub">Quando você bater um recorde numa série, ele aparece aqui automaticamente.</div>
+      </div>
     </div>
 
     <!-- ===================== PROFILE ===================== -->
@@ -462,6 +467,7 @@
       const next = document.getElementById(views[target]);
       setTimeout(()=>{ next.style.display='block'; next.scrollTop = 0; }, reduced ? 0 : 190);
 
+      if(target==='train' && !sessionRunning) sessionRunning = true;
       document.getElementById('restTimer').classList.toggle('show', target==='train' && restActive);
     });
   });
@@ -478,13 +484,16 @@
     }
     requestAnimationFrame(tick);
   }
-  countUp(document.getElementById('volNum'), 8420, 1100);
-  countUp(document.getElementById('numTreinos'), 4, 900);
-  countUp(document.getElementById('numSeq'), 12, 900);
+  // Home começa zerada — os números reais entram conforme você registra treinos.
+  document.getElementById('volNum').textContent = '0';
+  document.getElementById('numTreinos').textContent = '0';
+  document.getElementById('numSeq').textContent = '0';
 
   // ---------- session timer (Treino) ----------
-  let sessionSeconds = 742; // simula treino já em andamento
+  let sessionSeconds = 0;
+  let sessionRunning = false;
   setInterval(()=>{
+    if(!sessionRunning) return;
     sessionSeconds++;
     const m = Math.floor(sessionSeconds/60).toString().padStart(2,'0');
     const s = (sessionSeconds%60).toString().padStart(2,'0');
@@ -520,24 +529,31 @@
     return mono;
   }
 
-  // ---------- Free Exercise DB (domínio público, hospedado no GitHub) ----------
-  // https://github.com/yuhonas/free-exercise-db — fotos reais em preto e branco,
-  // tratadas para combinar com a paleta do app. CORS liberado, sem hotlink block.
+  // ---------- wger.de (projeto open-source, dados sob CC-BY-SA) ----------
+  // https://wger.de/en/software/api — endpoints de leitura são públicos, sem
+  // necessidade de chave. Não consigo testar CORS a partir do meu sandbox (o
+  // robots.txt deles bloqueia acesso automatizado), então isso está montado
+  // para nunca quebrar: se falhar, cada exercício simplesmente mostra o
+  // monograma, exatamente como já funciona hoje.
   let exerciseImages = {};
-  async function loadFreeExerciseDB(){
-    try{
-      const ctrl = new AbortController();
-      const timeout = setTimeout(()=>ctrl.abort(), 6000);
-      const res = await fetch('https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json', { signal: ctrl.signal });
-      clearTimeout(timeout);
-      if(!res.ok) throw new Error('status ' + res.status);
-      const data = await res.json();
-      data.forEach(item=>{
-        exerciseImages[item.name.toLowerCase()] = (item.images||[]).slice(0,2)
-          .map(p=>`https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${p}`);
-      });
-    }catch(e){
-      console.info('Free Exercise DB indisponível no momento — mantendo monogramas.');
+  async function loadWgerImages(){
+    for(const ex of EXERCISES){
+      const term = ex.match.split(' - ')[0];
+      try{
+        const ctrl = new AbortController();
+        const t = setTimeout(()=>ctrl.abort(), 3000);
+        const res = await fetch(`https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(term)}&language=2&format=json`, { signal: ctrl.signal });
+        clearTimeout(t);
+        if(res.ok){
+          const json = await res.json();
+          const items = json.suggestions || json.results || [];
+          const first = items[0];
+          const d = first && (first.data || first);
+          const img = d && (d.image || d.image_thumbnail || d.thumbnail);
+          if(img) exerciseImages[ex.match.toLowerCase()] = [ img.startsWith('http') ? img : `https://wger.de${img}` ];
+        }
+      }catch(e){ /* silencioso — mantém o monograma para este exercício */ }
+      await new Promise(r=>setTimeout(r, 140)); // não martela a API pública
     }
     hydrateFrames();
   }
@@ -545,17 +561,6 @@
     workout.forEach(ex=>{ if(!ex.frames && ex.match){ const imgs = exerciseImages[ex.match.toLowerCase()]; if(imgs && imgs.length) ex.frames = imgs; } });
     renderExercises();
   }
-  // alterna entre os dois frames de cada miniatura, criando o efeito de movimento
-  setInterval(()=>{
-    if(reduced) return;
-    document.querySelectorAll('.thumb').forEach(t=>{
-      const frames = t.querySelectorAll('.frame');
-      if(frames.length < 2) return;
-      const shown = t.querySelector('.frame.show') || frames[0];
-      shown.classList.remove('show');
-      (shown === frames[0] ? frames[1] : frames[0]).classList.add('show');
-    });
-  }, 1000);
   const checkSVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   // ---------- base local de exercícios (PT-BR) ----------
@@ -594,16 +599,19 @@
   ];
 
   // ---------- workout state ----------
-  let workout = [
-    { name:'Supino reto — barra', meta:'Peito · Barra', code:'PT', match:'Barbell Bench Press - Medium Grip',
-      sets:[ {kg:60, reps:10, done:true}, {kg:65, reps:8, done:true}, {kg:65, reps:8, done:false} ] },
-    { name:'Extensão de tríceps — polia', meta:'Tríceps · Polia', code:'TR', match:'Triceps Pushdown',
-      sets:[ {kg:22, reps:12, done:true}, {kg:26, reps:10, done:false} ] },
-  ];
+  let workout = [];
 
   function renderExercises(){
     const list = document.getElementById('exList');
     list.innerHTML = '';
+    if(!workout.length){
+      list.innerHTML = `
+        <div class="emptystate">
+          <div class="emptystate-title">Ainda em branco.</div>
+          <div class="emptystate-sub">Use "Adicionar exercício" abaixo para montar seu treino do zero.</div>
+        </div>`;
+      return;
+    }
     workout.forEach((ex, exi)=>{
       const wrap = document.createElement('div');
       wrap.className = 'exercise';
@@ -659,7 +667,7 @@
     });
   }
   renderExercises();
-  loadFreeExerciseDB();
+  loadWgerImages();
 
   // ---------- add exercise: live search ----------
   function toggleSearch(){
@@ -706,9 +714,9 @@
   }
 
   // ---------- progress chart ----------
-  const week = [ {d:'S', v:62}, {d:'T', v:78}, {d:'Q', v:40}, {d:'Q', v:88}, {d:'S', v:55}, {d:'S', v:20}, {d:'D', v:95} ];
+  const week = [ {d:'S', v:0}, {d:'T', v:0}, {d:'Q', v:0}, {d:'Q', v:0}, {d:'S', v:0}, {d:'S', v:0}, {d:'D', v:0} ];
   const chart = document.getElementById('chart');
-  const max = Math.max(...week.map(w=>w.v));
+  const max = Math.max(...week.map(w=>w.v), 1);
   week.forEach((w, i)=>{
     const col = document.createElement('div');
     col.className = 'bar-col' + (i===week.length-1 ? ' today' : '');
