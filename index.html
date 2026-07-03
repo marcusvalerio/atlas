@@ -151,9 +151,8 @@
     border:1px solid var(--line); flex-shrink:0; overflow:hidden;
     display:flex; align-items:center; justify-content:center; position:relative;
   }
-  .thumb img{ width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .5s ease; position:absolute; inset:0; }
-  .thumb img.loaded{ opacity:1; }
-  .thumb svg{ width:26px; height:26px; }
+  .thumb .mono{ font-family:'Gabarito'; font-weight:700; font-size:17px; letter-spacing:.02em; color:var(--ink-soft); }
+  .exresult .thumb .mono{ font-size:13px; }
   .exname{ font-family:'Gabarito'; font-weight:700; font-size:16.5px; }
   .exmeta{ font-size:11px; color:var(--mute); margin-top:3px; letter-spacing:.01em; }
 
@@ -508,49 +507,45 @@
   function skipRest(){ endRest(); }
 
   // ---------- icons ----------
-  const dumbbellSVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 10v4M21 10v4M6 8v8M18 8v8M6 12h12" stroke="var(--mute)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const checkSVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-  // ---------- ExerciseDB integration (https://oss.exercisedb.dev) ----------
-  let exercisePool = [];
-  async function loadExercisePool(){
-    try{
-      for(let offset=0; offset<80; offset+=20){
-        const ctrl = new AbortController();
-        const t = setTimeout(()=>ctrl.abort(), 4000);
-        const res = await fetch(`https://oss.exercisedb.dev/api/v1/exercises?limit=20&offset=${offset}`, { mode:'cors', signal: ctrl.signal });
-        clearTimeout(t);
-        if(!res.ok) break;
-        const json = await res.json();
-        const items = Array.isArray(json) ? json : (json.data || json.exercises || []);
-        if(!items.length) break;
-        exercisePool = exercisePool.concat(items);
-        if(items.length < 20) break;
-      }
-    }catch(e){
-      // API pública gratuita, sem SLA — segue normalmente com os ícones padrão.
-      console.info('ExerciseDB indisponível no momento, exibindo ícones padrão.');
-    }
-    hydrateExerciseMedia();
-  }
-  function findExercise(keywords){
-    const kws = keywords.map(k=>k.toLowerCase());
-    return exercisePool.find(ex=>{
-      const name = (ex.name||'').toLowerCase();
-      return kws.every(k=>name.includes(k));
-    }) || exercisePool.find(ex=>(ex.name||'').toLowerCase().includes(kws[0]));
-  }
-  function hydrateExerciseMedia(){
-    if(!exercisePool.length) return;
-    workout.forEach(ex=>{ if(!ex.gif){ const m = findExercise(ex.query); if(m && m.gifUrl) ex.gif = m.gifUrl; if(m && !ex.metaFromApi) ex.meta = (m.bodyParts?.[0]||ex.meta); } });
-    renderExercises();
-  }
+  // ---------- base local de exercícios (PT-BR) ----------
+  // GIFs de bibliotecas gratuitas de exercício têm proteção anti-hotlink e não
+  // carregam fora do site de origem — em vez disso, cada exercício recebe um
+  // monograma tipográfico por grupo muscular (mais fiel à direção editorial).
+  const EXERCISES = [
+    { name:'Supino reto — barra', code:'PT', meta:'Peito · Barra' },
+    { name:'Supino inclinado — halteres', code:'PT', meta:'Peito · Halteres' },
+    { name:'Crucifixo — polia', code:'PT', meta:'Peito · Polia' },
+    { name:'Crossover', code:'PT', meta:'Peito · Polia' },
+    { name:'Desenvolvimento militar — barra', code:'OM', meta:'Ombro · Barra' },
+    { name:'Elevação lateral — halteres', code:'OM', meta:'Ombro · Halteres' },
+    { name:'Elevação frontal — halteres', code:'OM', meta:'Ombro · Halteres' },
+    { name:'Remada curvada — barra', code:'CO', meta:'Costas · Barra' },
+    { name:'Puxada frontal — polia', code:'CO', meta:'Costas · Polia' },
+    { name:'Barra fixa', code:'CO', meta:'Costas · Peso corporal' },
+    { name:'Remada baixa — polia', code:'CO', meta:'Costas · Polia' },
+    { name:'Rosca direta — barra', code:'BI', meta:'Bíceps · Barra' },
+    { name:'Rosca alternada — halteres', code:'BI', meta:'Bíceps · Halteres' },
+    { name:'Rosca martelo', code:'BI', meta:'Bíceps · Halteres' },
+    { name:'Extensão de tríceps — polia', code:'TR', meta:'Tríceps · Polia' },
+    { name:'Tríceps testa — barra', code:'TR', meta:'Tríceps · Barra' },
+    { name:'Mergulho — paralelas', code:'TR', meta:'Tríceps · Peso corporal' },
+    { name:'Agachamento livre — barra', code:'PR', meta:'Pernas · Barra' },
+    { name:'Leg press', code:'PR', meta:'Pernas · Máquina' },
+    { name:'Cadeira extensora', code:'PR', meta:'Pernas · Máquina' },
+    { name:'Mesa flexora', code:'PR', meta:'Pernas · Máquina' },
+    { name:'Panturrilha em pé', code:'PR', meta:'Pernas · Máquina' },
+    { name:'Prancha', code:'AB', meta:'Abdômen · Peso corporal' },
+    { name:'Abdominal supra', code:'AB', meta:'Abdômen · Peso corporal' },
+    { name:'Elevação de pernas', code:'AB', meta:'Abdômen · Peso corporal' },
+  ];
 
   // ---------- workout state ----------
   let workout = [
-    { name:'Supino reto — barra', meta:'Peito · Barra', query:['bench press','barbell'], gif:null,
+    { name:'Supino reto — barra', meta:'Peito · Barra', code:'PT',
       sets:[ {kg:60, reps:10, done:true}, {kg:65, reps:8, done:true}, {kg:65, reps:8, done:false} ] },
-    { name:'Extensão de tríceps — polia', meta:'Tríceps · Polia', query:['pushdown'], gif:null,
+    { name:'Extensão de tríceps — polia', meta:'Tríceps · Polia', code:'TR',
       sets:[ {kg:22, reps:12, done:true}, {kg:26, reps:10, done:false} ] },
   ];
 
@@ -562,10 +557,7 @@
       wrap.className = 'exercise';
       wrap.innerHTML = `
         <div class="exmedia">
-          <div class="thumb">
-            ${dumbbellSVG}
-            ${ex.gif ? `<img src="${ex.gif}" alt="" onload="this.classList.add('loaded')" onerror="this.remove()">` : ''}
-          </div>
+          <div class="thumb"><span class="mono">${ex.code}</span></div>
           <div>
             <div class="exname">${ex.name}</div>
             <div class="exmeta">${ex.meta}</div>
@@ -615,7 +607,6 @@
     });
   }
   renderExercises();
-  loadExercisePool();
 
   // ---------- add exercise: live search ----------
   function toggleSearch(){
@@ -631,24 +622,18 @@
     const q = document.getElementById('exSearchInput').value.trim().toLowerCase();
     const box = document.getElementById('exResults');
     if(q.length < 2){ box.innerHTML = ''; return; }
-    if(!exercisePool.length){ box.innerHTML = '<div class="exempty">Base de exercícios indisponível agora — adicione manualmente e edite o nome depois.</div>'; return; }
-    const matches = exercisePool.filter(ex=>(ex.name||'').toLowerCase().includes(q)).slice(0,6);
-    if(!matches.length){ box.innerHTML = '<div class="exempty">Nenhum exercício encontrado.</div>'; return; }
-    box.innerHTML = matches.map((m,i)=>`
-      <div class="exresult" data-idx="${i}">
-        <div class="thumb">${dumbbellSVG}<img src="${m.gifUrl}" alt="" onload="this.classList.add('loaded')" onerror="this.remove()"></div>
-        <div><div class="rn">${m.name}</div><div class="rm">${(m.bodyParts||[]).join(', ')}</div></div>
+    const matches = EXERCISES.filter(ex=>ex.name.toLowerCase().includes(q)).slice(0,6);
+    if(!matches.length){ box.innerHTML = '<div class="exempty">Nenhum exercício encontrado — tente outro termo.</div>'; return; }
+    box.innerHTML = matches.map((m)=>`
+      <div class="exresult">
+        <div class="thumb"><span class="mono">${m.code}</span></div>
+        <div><div class="rn">${m.name}</div><div class="rm">${m.meta}</div></div>
       </div>
     `).join('');
     box.querySelectorAll('.exresult').forEach((el,i)=>{
       el.addEventListener('click', ()=>{
         const m = matches[i];
-        workout.push({
-          name: m.name.replace(/\b\w/g, c=>c.toUpperCase()),
-          meta: [(m.bodyParts||[])[0], (m.equipments||[])[0]].filter(Boolean).join(' · ') || 'Personalizado',
-          query: [m.name.split(' ')[0]], gif: m.gifUrl, metaFromApi:true,
-          sets:[{kg:20, reps:10, done:false}]
-        });
+        workout.push({ name:m.name, meta:m.meta, code:m.code, sets:[{kg:20, reps:10, done:false}] });
         renderExercises();
         toggleSearch();
         document.getElementById('exSearchInput').value = '';
