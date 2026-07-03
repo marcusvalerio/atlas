@@ -3,53 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#F6F3EC">
+<meta name="theme-color" content="#0A120E">
 <title>ATLAS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Gabarito:wght@500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gabarito:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#141310;
-    --ink-soft:#3A382F;
-    --paper:#F6F3EC;
-    --paper-2:#EBE7DC;
-    --card:#FBF9F4;
-    --line:#DBD5C5;
-    --mute:#6E6A5C;
-    --olive:#33361F;
-    --white:#FFFEFB;
+    --bg:#0A100D;
+    --bg-2:#0E1913;
+    --card:#101D16;
+    --card-2:#132018;
+    --line:rgba(255,255,255,0.09);
+    --ink:#F3F5F1;
+    --mute:#7E9186;
+    --neon:#33E39A;
+    --neon-dim:rgba(51,227,154,0.18);
+    --amber:#F0B84E;
+    --blue:#4FA6E8;
+    --white:#FFFFFF;
     --sat:env(safe-area-inset-top,0px);
     --sab:env(safe-area-inset-bottom,0px);
   }
-
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body{
-    margin:0; padding:0; height:100%;
-    background:var(--paper-2);
-    font-family:'Inter',-apple-system,'Helvetica Neue',Arial,sans-serif;
-    color:var(--ink);
-  }
+  html,body{ margin:0; padding:0; height:100%; background:#000; font-family:'Inter',-apple-system,'Helvetica Neue',Arial,sans-serif; color:var(--ink); }
   body{ display:flex; align-items:center; justify-content:center; min-height:100vh; }
-  *:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; border-radius:2px; }
+  *:focus-visible{ outline:2px solid var(--neon); outline-offset:2px; border-radius:2px; }
 
-  /* ---------- DEVICE (desktop preview chrome) ---------- */
-  .device{
-    width:390px; height:844px; background:var(--ink);
-    border-radius:56px; padding:14px;
-    box-shadow:0 40px 80px -30px rgba(20,19,16,0.45), 0 0 0 1px rgba(20,19,16,0.05);
-    position:relative;
-  }
-  .screen{
-    width:100%; height:100%; background:var(--paper);
-    border-radius:42px; overflow:hidden; position:relative;
-    display:flex; flex-direction:column;
-  }
-  .notch{
-    position:absolute; top:14px; left:50%; transform:translateX(-50%);
-    width:120px; height:28px; background:var(--ink); border-radius:20px; z-index:50;
-  }
+  .device{ width:390px; height:844px; background:#000; border-radius:56px; padding:14px; box-shadow:0 40px 80px -30px rgba(0,0,0,0.6); position:relative; }
+  .screen{ width:100%; height:100%; background:radial-gradient(120% 60% at 50% -10%, #142620 0%, var(--bg) 55%); border-radius:42px; overflow:hidden; position:relative; display:flex; flex-direction:column; }
+  .notch{ position:absolute; top:14px; left:50%; transform:translateX(-50%); width:120px; height:28px; background:#000; border-radius:20px; z-index:50; }
 
-  /* ---------- REAL MOBILE: no fake phone-in-a-phone ---------- */
   @media (max-width:500px){
     body{ display:block; }
     .device{ width:100vw; height:100vh; height:100dvh; border-radius:0; padding:0; box-shadow:none; }
@@ -57,268 +40,190 @@
     .notch{ display:none; }
   }
 
-  .statusbar{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:calc(20px + var(--sat)) 30px 6px; font-weight:600; font-size:15px; color:var(--ink); flex-shrink:0;
-  }
+  .statusbar{ display:flex; align-items:center; justify-content:space-between; padding:calc(18px + var(--sat)) 26px 4px; font-weight:600; font-size:15px; color:var(--ink); flex-shrink:0; }
   .statusbar .icons{ display:flex; align-items:center; gap:5px; }
-  @media (max-width:500px){ .statusbar{ display:none; } .view{ padding-top:calc(20px + var(--sat)) !important; } }
+  @media (max-width:500px){ .statusbar{ display:none; } .view{ padding-top:calc(18px + var(--sat)) !important; } }
 
-  .view{
-    flex:1; overflow-y:auto; overflow-x:hidden; padding:2px 28px 140px;
-    opacity:1; transform:translateY(0) scale(1); filter:blur(0px);
-    transition:opacity .38s ease, transform .38s ease, filter .38s ease;
-    scrollbar-width:none; -webkit-overflow-scrolling:touch;
-  }
+  .view{ flex:1; overflow-y:auto; overflow-x:hidden; padding:2px 20px 140px; opacity:1; transform:translateY(0) scale(1); filter:blur(0px); transition:opacity .38s ease, transform .38s ease, filter .38s ease; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
   .view::-webkit-scrollbar{ display:none; }
   .view.exit{ opacity:0; transform:translateY(6px) scale(.99); filter:blur(6px); }
 
-  .eyebrow{
-    font-weight:600; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase;
-    color:var(--mute); display:flex; align-items:center; gap:8px; margin:22px 0 4px;
-  }
-  .eyebrow .dash{ width:14px; height:1px; background:var(--line); }
+  .brandrow{ display:flex; align-items:center; justify-content:space-between; padding:10px 4px 14px; }
+  .wordmark{ display:flex; align-items:center; gap:8px; font-family:'Gabarito'; font-weight:800; font-size:19px; }
+  .wordmark .logo{ width:20px; height:20px; }
+  .headerbtns{ display:flex; align-items:center; gap:8px; }
+  .streakpill{ display:flex; align-items:center; gap:5px; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:8px 13px; font-family:'Gabarito'; font-weight:700; font-size:14px; }
+  .iconbtn{ width:38px; height:38px; border-radius:50%; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--ink); cursor:pointer; }
+  .datecap{ font-size:13px; color:var(--mute); font-weight:500; padding:0 4px 12px; }
 
-  .headline{
-    font-family:'Gabarito'; font-weight:800; font-size:32px; letter-spacing:-0.02em;
-    line-height:1.06; margin:0 0 22px; color:var(--ink);
-  }
-  .headline .sub{
-    display:block; font-family:'Inter'; font-weight:500; font-size:13px;
-    letter-spacing:0; color:var(--mute); margin-top:6px;
-  }
-  .headrow{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-  .sessiontimer{
-    font-family:'Gabarito'; font-weight:700; font-size:13px; color:var(--ink);
-    background:var(--card); border:1px solid var(--line); border-radius:20px;
-    padding:6px 12px; white-space:nowrap; margin-top:4px;
-    display:flex; align-items:center; gap:6px;
-  }
-  .sessiontimer .reddot{ width:6px; height:6px; border-radius:50%; background:#B5432C; animation:pulse 1.6s ease-in-out infinite; }
-  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.3;} }
+  .rule{ height:1px; background:var(--line); border:0; margin:20px 0; }
+  .eyebrow{ font-weight:600; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--mute); padding:0 4px; margin-bottom:10px; }
 
-  .rule{ height:1px; background:var(--line); border:0; margin:24px 0; }
-
-  /* ---------- shared interactive feedback ---------- */
-  .tapable{ transition:transform .12s ease, opacity .12s ease; }
-  .tapable:active{ transform:scale(.97); opacity:.85; }
-
-  /* ---------- HOME ---------- */
-  .brandrow{ display:flex; align-items:center; justify-content:space-between; padding-top:8px; }
-  .wordmark{ font-family:'Gabarito'; font-weight:900; font-size:19px; letter-spacing:.03em; }
-  .datecap{ font-size:11px; font-weight:500; color:var(--mute); text-transform:capitalize; }
-
-  .hero-stat{
-    padding:28px 0 24px; margin-top:6px;
-    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  /* ---------- HERO ARC CARD ---------- */
+  .arccard{
+    background:linear-gradient(180deg, var(--card-2), var(--card)); border:1px solid var(--line); border-radius:26px;
+    padding:22px 22px 20px; position:relative; overflow:hidden;
   }
-  .hero-stat .label{
-    font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
-    color:var(--mute); margin-bottom:10px;
-  }
-  .hero-stat .value{
-    font-family:'Gabarito'; font-weight:800; font-size:62px; letter-spacing:-0.03em;
-    line-height:1; color:var(--ink); display:inline-block; position:relative;
-  }
-  .hero-stat .value::after{
-    content:''; position:absolute; left:1px; bottom:-3px; height:2px; width:0%;
-    background:var(--ink); animation:draw 1.1s .3s cubic-bezier(.65,0,.35,1) forwards;
-  }
-  @keyframes draw{ to{ width:38%; } }
-  .hero-stat .value .unit{ font-size:22px; font-weight:600; color:var(--mute); margin-left:4px; }
-  .hero-stat .delta{ margin-top:12px; font-size:12.5px; color:var(--ink-soft); font-weight:500; }
+  .arccard::before{ content:''; position:absolute; top:-60%; left:50%; transform:translateX(-50%); width:140%; height:140%; background:radial-gradient(circle, var(--neon-dim), transparent 60%); pointer-events:none; }
+  .arc-badge{ display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.06); border:1px solid var(--line); border-radius:20px; padding:6px 13px; font-size:11.5px; font-weight:600; color:var(--ink); margin-bottom:4px; position:relative; z-index:1; }
+  .arc-wrap{ position:relative; display:flex; flex-direction:column; align-items:center; z-index:1; }
+  .arc-svg{ display:block; }
+  .arc-center{ position:absolute; top:52%; left:50%; transform:translate(-50%,-50%); text-align:center; }
+  .arc-label{ font-size:11px; color:var(--mute); font-weight:600; letter-spacing:.04em; margin-bottom:4px; }
+  .arc-value{ font-family:'Gabarito'; font-weight:800; font-size:34px; letter-spacing:-0.02em; color:var(--ink); }
+  .arc-value .u{ font-size:16px; color:var(--mute); font-weight:600; margin-left:2px; }
 
-  .stat-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; }
-  .stat-grid .cell{ padding:20px 4px 20px 0; border-right:1px solid var(--line); }
-  .stat-grid .cell:last-child{ border-right:0; padding-right:0; }
-  .stat-grid .num{ font-family:'Gabarito'; font-weight:700; font-size:23px; letter-spacing:-.01em; }
-  .stat-grid .lbl{ font-size:10.5px; color:var(--mute); margin-top:5px; letter-spacing:.02em; }
+  .arc-pill{
+    display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.05); border:1px solid var(--line);
+    border-radius:20px; padding:10px 16px; margin-top:14px; position:relative; z-index:1; cursor:pointer;
+  }
+  .arc-pill .dot{ width:30px; height:30px; border-radius:50%; background:var(--neon-dim); display:flex; align-items:center; justify-content:center; color:var(--neon); flex-shrink:0; }
+  .arc-pill .tt{ font-family:'Gabarito'; font-weight:700; font-size:14px; }
+  .arc-pill .ts{ font-size:11px; color:var(--mute); }
 
-  .next-card{ margin-top:26px; padding:22px 0; border-top:1px solid var(--line); cursor:pointer; }
-  .next-card .row1{ display:flex; align-items:center; justify-content:space-between; }
-  .next-card .title{ font-family:'Gabarito'; font-weight:700; font-size:19px; }
-  .next-card .focus{ margin-top:10px; font-size:12.5px; color:var(--mute); }
-  .next-card .focus b{ color:var(--ink); font-weight:600; }
-  .next-card .meta{ margin-top:16px; font-size:12px; color:var(--mute); display:flex; gap:16px; }
+  .arc-meta{ display:flex; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:var(--mute); position:relative; z-index:1; }
+  .arc-meta b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- STAT TILES ---------- */
+  .stat2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+  .stat2 .tile{ background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px; }
+  .tile-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .tile-label{ font-size:11px; font-weight:600; color:var(--neon); }
+  .tile-sub{ font-size:10.5px; color:var(--mute); }
+  .tile-value{ font-family:'Gabarito'; font-weight:800; font-size:23px; letter-spacing:-.01em; }
+  .tile-value .u{ font-size:13px; color:var(--mute); font-weight:600; }
+  .tile-name{ font-size:11.5px; color:var(--mute); margin-top:2px; margin-bottom:10px; }
+  .badge{ display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:12px; }
+  .badge.ok{ background:rgba(79,166,232,0.16); color:var(--blue); }
+  .badge.warn{ background:rgba(240,184,78,0.16); color:var(--amber); }
+  .badge.neutral{ background:rgba(255,255,255,0.06); color:var(--mute); }
+
+  /* ---------- QUICK ACCESS ---------- */
+  .qa-title{ font-family:'Gabarito'; font-weight:700; font-size:15px; margin:22px 4px 10px; }
+  .qa-scroll{ display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; scrollbar-width:none; }
+  .qa-scroll::-webkit-scrollbar{ display:none; }
+  .qa-tile{
+    flex-shrink:0; width:92px; height:78px; border-radius:16px; position:relative; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:flex-end; padding:10px; cursor:pointer; border:1px solid var(--line);
+  }
+  .qa-tile .glow{ position:absolute; inset:-30%; filter:blur(18px); opacity:.55; z-index:0; }
+  .qa-tile span{ position:relative; z-index:1; font-size:11px; font-weight:700; color:var(--white); line-height:1.2; }
+  .qa-tile svg{ position:relative; z-index:1; width:16px; height:16px; color:var(--white); margin-bottom:auto; }
+  .qa1 .glow{ background:radial-gradient(circle, #E8874A, transparent 70%); }
+  .qa2 .glow{ background:radial-gradient(circle, #8A6BE0, transparent 70%); }
+  .qa3 .glow{ background:radial-gradient(circle, #33E39A, transparent 70%); }
+  .qa4 .glow{ background:radial-gradient(circle, #4FA6E8, transparent 70%); }
+  .qa-tile{ background:var(--card); }
 
   /* ---------- TRAIN ---------- */
-  .exercise{ padding-top:22px; margin-top:0; border-top:1px solid var(--line); }
-  .exercise:first-child{ border-top:0; padding-top:0; }
-  .emptystate{ padding:36px 0 30px; }
+  .headrow{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:4px 4px 16px; }
+  .h1{ font-family:'Gabarito'; font-weight:800; font-size:26px; letter-spacing:-.02em; }
+  .h1 .sub{ display:block; font-size:12.5px; font-weight:500; color:var(--mute); margin-top:4px; }
+  .sessiontimer{ font-family:'Gabarito'; font-weight:700; font-size:13px; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:7px 12px; display:flex; align-items:center; gap:6px; white-space:nowrap; margin-top:2px; }
+  .sessiontimer .dotpulse{ width:6px; height:6px; border-radius:50%; background:var(--neon); animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
+
+  .emptystate{ padding:50px 12px 30px; text-align:center; }
   .emptystate-title{ font-family:'Gabarito'; font-weight:700; font-size:19px; margin-bottom:8px; }
-  .emptystate-sub{ font-size:13px; color:var(--mute); line-height:1.5; max-width:240px; }
+  .emptystate-sub{ font-size:13px; color:var(--mute); line-height:1.5; max-width:250px; margin:0 auto; }
 
-  .exmedia{ display:flex; align-items:center; gap:14px; margin-bottom:6px; }
-  .thumb{
-    width:64px; height:64px; border-radius:3px; background:var(--paper-2);
-    border:1px solid var(--line); flex-shrink:0; overflow:hidden;
-    display:flex; align-items:center; justify-content:center; position:relative;
-  }
-  .thumb .mono{ font-family:'Gabarito'; font-weight:700; font-size:17px; letter-spacing:.02em; color:var(--ink-soft); z-index:1; }
-  .thumb .frame{
-    position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 20%;
-    filter:grayscale(1) contrast(1.1) brightness(1.05); opacity:0; transition:opacity .7s ease; z-index:2;
-  }
-  .thumb .frame.show{ opacity:1; }
-  .thumb .tone{ position:absolute; inset:0; background:var(--paper-2); mix-blend-mode:multiply; opacity:.14; z-index:3; pointer-events:none; }
-  .exresult .thumb .mono{ font-size:13px; }
-  .exname{ font-family:'Gabarito'; font-weight:700; font-size:16.5px; }
-  .exmeta{ font-size:11px; color:var(--mute); margin-top:3px; letter-spacing:.01em; }
-
-  .setlabels{ display:grid; grid-template-columns:34px 1fr 1fr 30px; padding:14px 0 4px; }
-  .setlabels span{ font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--mute); }
-  .setlabels span:nth-child(2), .setlabels span:nth-child(3){ text-align:center; }
-
-  .setrow{
-    display:grid; grid-template-columns:34px 1fr 1fr 30px; align-items:center;
-    padding:15px 0; border-top:1px solid var(--line); transition:opacity .25s ease, background .15s ease;
-    cursor:pointer; min-height:44px;
-  }
-  .setrow .sidx{ font-size:12px; font-weight:600; color:var(--mute); }
-  .setrow .sval{
-    font-family:'Gabarito'; font-weight:700; font-size:21px; text-align:center;
-    color:var(--ink); outline:none; letter-spacing:-.01em; padding:6px 0;
-  }
-  .setrow .sval[contenteditable="true"]:focus{ color:var(--ink-soft); }
-  .setrow .scheck{ display:flex; justify-content:flex-end; }
-  .scheck-badge{
-    width:23px; height:23px; border-radius:50%; border:1.5px solid var(--line);
-    display:flex; align-items:center; justify-content:center; transition:all .2s ease; flex-shrink:0;
-  }
-  .scheck-badge svg{ width:11px; height:11px; opacity:0; transition:opacity .15s ease; }
-  .setrow.done{ background:var(--paper-2); }
-  .setrow.done .sval{ color:var(--mute); text-decoration:line-through; text-decoration-color:var(--line); text-decoration-thickness:1.5px; }
-  .setrow.done .scheck-badge{ background:var(--olive); border-color:var(--olive); }
-  .setrow.done .scheck-badge svg{ opacity:1; }
-  .setrow.done .scheck-badge svg path{ stroke:var(--white); }
-
-  .addset{
-    margin:14px 0 6px; width:100%; padding:13px; background:transparent;
-    border:1px dashed var(--line); border-radius:2px; color:var(--mute);
-    font-weight:600; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase;
-    cursor:pointer; min-height:44px;
-  }
-  .addset:active{ border-color:var(--ink); color:var(--ink); }
-
-  .addex-wrap{ margin:26px 0 20px; border-top:1px solid var(--line); padding-top:20px; }
-  .addex{
-    width:100%; padding:0; background:transparent; border:0; color:var(--mute);
-    font-weight:600; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase;
-    cursor:pointer; text-align:left; min-height:44px;
-  }
-  .addex:active{ color:var(--ink); }
-  .exsearch{ display:none; margin-top:14px; }
-  .exsearch.open{ display:block; }
-  .exsearch input{
-    width:100%; padding:12px 14px; font-family:'Inter'; font-size:14px;
-    border:1px solid var(--line); border-radius:2px; background:var(--card);
-    outline:none; color:var(--ink);
-  }
-  .exsearch input:focus{ border-color:var(--ink); }
-  .exresults{ margin-top:2px; }
-  .exresult{
-    display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--line);
-    cursor:pointer; min-height:44px;
-  }
-  .exresult .thumb{ width:40px; height:40px; }
-  .exresult .rn{ font-size:13.5px; font-weight:600; text-transform:capitalize; }
-  .exresult .rm{ font-size:10.5px; color:var(--mute); text-transform:capitalize; }
-  .exempty{ font-size:12.5px; color:var(--mute); padding:14px 0; }
-
-  .finishbar{
-    display:flex; align-items:center; justify-content:center; gap:10px;
-    padding:16px; background:var(--ink); color:var(--white); border-radius:2px;
-    font-family:'Gabarito'; font-weight:700; font-size:14px; letter-spacing:.03em;
-    cursor:pointer; min-height:48px;
-  }
-
-  .resttimer{
-    position:fixed; left:20px; right:20px; bottom:100px; z-index:60;
-    background:var(--ink); color:var(--white); border-radius:26px;
-    padding:10px 10px 10px 16px; display:none; align-items:center; gap:8px;
-    box-shadow:0 20px 40px -15px rgba(20,19,16,0.5);
-  }
-  .resttimer.show{ display:flex; }
-  .resttimer .rt-center{ flex:1; text-align:center; }
-  .resttimer .rt-label{ font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; opacity:.6; }
-  .resttimer .rt-time{ font-family:'Gabarito'; font-weight:800; font-size:20px; margin-top:1px; }
-  .resttimer .rt-adj{
-    background:rgba(255,255,255,0.1); border:0; color:var(--white); font-size:11px; font-weight:700;
-    width:38px; height:38px; border-radius:50%; cursor:pointer; flex-shrink:0;
-  }
-  .resttimer .rt-skip{
-    background:rgba(255,255,255,0.12); border:0; color:var(--white); font-size:11px; font-weight:600;
-    padding:8px 14px; border-radius:16px; cursor:pointer; letter-spacing:.03em; flex-shrink:0;
-  }
-  @media (max-width:500px){ .resttimer{ bottom:calc(96px + var(--sab)); } }
-
+  .exercise{ background:var(--card); border:1px solid var(--line); border-radius:20px; padding:16px; margin-bottom:12px; }
+  .exmedia{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .thumb{ width:56px; height:56px; border-radius:14px; background:var(--bg-2); border:1px solid var(--line); flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative; }
+  .thumb .mono{ font-family:'Gabarito'; font-weight:700; font-size:15px; color:var(--neon); z-index:1; }
+  .thumb .frame{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 20%; filter:saturate(0) brightness(0.9) contrast(1.15); opacity:0; }
+  .thumb .frame.show{ opacity:.85; }
+  .thumb .tone{ position:absolute; inset:0; background:linear-gradient(180deg, transparent, rgba(10,16,13,0.6)); z-index:2; pointer-events:none; }
+  .exname{ font-family:'Gabarito'; font-weight:700; font-size:15.5px; }
+  .exmeta{ font-size:11px; color:var(--mute); margin-top:2px; }
   .excontrols{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
-  .exremove{
-    width:26px; height:26px; border-radius:50%; background:transparent; border:0;
-    color:var(--mute); display:flex; align-items:center; justify-content:center; cursor:pointer;
-  }
-  .exremove svg{ width:13px; height:13px; }
-  .exremove:active{ color:var(--ink); background:var(--paper-2); }
+  .restpill{ display:flex; align-items:center; gap:5px; background:var(--bg-2); border:1px solid var(--line); border-radius:14px; padding:6px 10px; color:var(--neon); font-weight:700; font-size:11px; cursor:pointer; min-height:32px; }
+  .restpill svg{ width:12px; height:12px; }
+  .exremove{ width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:var(--mute); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .exremove svg{ width:12px; height:12px; }
+  .exremove:active{ color:var(--ink); }
 
-  .restpill{
-    display:flex; align-items:center; gap:5px; background:transparent; border:1px solid var(--line);
-    border-radius:16px; padding:7px 11px; color:var(--mute); font-family:'Inter'; font-weight:600;
-    font-size:11.5px; cursor:pointer; flex-shrink:0; align-self:flex-start; min-height:36px;
+  .setlabels{ display:grid; grid-template-columns:30px 1fr 1fr 30px; padding:0 0 6px; }
+  .setlabels span{ font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--mute); }
+  .setlabels span:nth-child(2), .setlabels span:nth-child(3){ text-align:center; }
+  .setrow{ display:grid; grid-template-columns:30px 1fr 1fr 30px; align-items:center; padding:11px 8px; border-radius:12px; margin:0 -8px; cursor:pointer; min-height:44px; transition:background .15s ease; }
+  .setrow .sidx{ font-size:11.5px; font-weight:600; color:var(--mute); }
+  .setrow .sval{ font-family:'Gabarito'; font-weight:700; font-size:19px; text-align:center; color:var(--ink); outline:none; padding:6px 0; }
+  .setrow .sval[contenteditable="true"]:focus{ color:var(--neon); }
+  .setrow.done{ background:rgba(51,227,154,0.08); }
+  .setrow.done .sval{ color:var(--mute); text-decoration:line-through; text-decoration-color:rgba(255,255,255,0.2); }
+  .scheck{ display:flex; justify-content:flex-end; }
+  .scheck-badge{ width:22px; height:22px; border-radius:50%; border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center; transition:all .2s ease; }
+  .scheck-badge svg{ width:11px; height:11px; opacity:0; transition:opacity .15s ease; }
+  .setrow.done .scheck-badge{ background:var(--neon); border-color:var(--neon); box-shadow:0 0 12px rgba(51,227,154,0.5); }
+  .setrow.done .scheck-badge svg{ opacity:1; }
+  .setrow.done .scheck-badge svg path{ stroke:#062018; }
+
+  .addset{ margin-top:8px; width:100%; padding:11px; background:transparent; border:1px dashed var(--line); border-radius:12px; color:var(--mute); font-weight:600; font-size:11px; letter-spacing:.05em; text-transform:uppercase; cursor:pointer; min-height:40px; }
+  .addset:active{ border-color:var(--neon); color:var(--neon); }
+
+  .addex-wrap{ margin:6px 0 16px; }
+  .addex{ width:100%; padding:14px; background:var(--card); border:1px solid var(--line); border-radius:16px; color:var(--ink); font-weight:700; font-size:13px; cursor:pointer; text-align:center; min-height:48px; }
+  .exsearch{ display:none; margin-top:10px; }
+  .exsearch.open{ display:block; }
+  .exsearch input{ width:100%; padding:13px 14px; font-family:'Inter'; font-size:14px; border:1px solid var(--line); border-radius:14px; background:var(--card); outline:none; color:var(--ink); }
+  .exsearch input:focus{ border-color:var(--neon); }
+  .exresults{ margin-top:8px; display:flex; flex-direction:column; gap:8px; }
+  .exresult{ display:flex; align-items:center; gap:12px; padding:10px; border-radius:14px; background:var(--card); border:1px solid var(--line); cursor:pointer; min-height:44px; }
+  .exresult .thumb{ width:40px; height:40px; }
+  .exresult .rn{ font-size:13px; font-weight:600; }
+  .exresult .rm{ font-size:10.5px; color:var(--mute); }
+  .exempty{ font-size:12.5px; color:var(--mute); padding:14px; text-align:center; }
+
+  .finishbar{ display:flex; align-items:center; justify-content:center; gap:10px; padding:16px; background:var(--neon); color:#062018; border-radius:16px; font-family:'Gabarito'; font-weight:800; font-size:14px; letter-spacing:.02em; cursor:pointer; min-height:50px; box-shadow:0 10px 30px -10px rgba(51,227,154,0.5); }
+
+  /* ---------- REST SHEET (arc takeover) ---------- */
+  .restsheet{
+    position:fixed; left:0; right:0; bottom:0; z-index:70;
+    background:linear-gradient(180deg, var(--card-2), var(--bg)); border-top:1px solid var(--line);
+    border-radius:28px 28px 0 0; padding:22px 22px calc(22px + var(--sab)); display:none;
+    box-shadow:0 -30px 60px -20px rgba(0,0,0,0.6);
   }
-  .restpill svg{ width:13px; height:13px; }
-  .restpill:active{ border-color:var(--ink); color:var(--ink); }
+  .restsheet.show{ display:block; }
+  .restsheet-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .restsheet-label{ font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--mute); }
+  .restsheet-close{ background:rgba(255,255,255,0.06); border:0; width:28px; height:28px; border-radius:50%; color:var(--ink); cursor:pointer; }
+  .rest-actions{ display:flex; gap:10px; margin-top:16px; }
+  .rest-adj{ flex:1; background:rgba(255,255,255,0.06); border:0; color:var(--ink); font-weight:700; font-size:13px; padding:13px; border-radius:14px; cursor:pointer; }
+  .rest-skip{ flex:1.4; background:var(--neon); border:0; color:#062018; font-weight:800; font-size:13px; padding:13px; border-radius:14px; cursor:pointer; }
 
   /* ---------- PROGRESS ---------- */
-  .chart{ display:flex; align-items:flex-end; justify-content:space-between; height:150px; margin-top:8px; padding-bottom:10px; border-bottom:1px solid var(--line); }
+  .chart{ display:flex; align-items:flex-end; justify-content:space-between; height:150px; margin-top:14px; padding:0 4px 14px; border-bottom:1px solid var(--line); }
   .bar-col{ display:flex; flex-direction:column; align-items:center; gap:8px; flex:1; cursor:pointer; }
-  .bar{ width:11px; background:var(--paper-2); border:1px solid var(--line); border-radius:2px; position:relative; overflow:visible; }
-  .bar .fill{ position:absolute; bottom:0; left:0; width:100%; background:var(--ink-soft); height:0%; transition:height 1s cubic-bezier(.22,1,.36,1); opacity:.55; border-radius:2px; }
-  .bar-col.today .fill{ background:var(--ink); opacity:1; }
+  .bar{ width:10px; background:var(--bg-2); border-radius:5px; position:relative; overflow:visible; }
+  .bar .fill{ position:absolute; bottom:0; left:0; width:100%; background:linear-gradient(180deg, var(--neon), #1B8A5E); height:0%; transition:height 1s cubic-bezier(.22,1,.36,1); border-radius:5px; }
+  .bar-col.today .fill{ box-shadow:0 0 14px rgba(51,227,154,0.6); }
   .bar-day{ font-size:10px; color:var(--mute); font-weight:600; }
-  .bar-tip{
-    position:absolute; bottom:100%; left:50%; transform:translateX(-50%) translateY(-6px) scale(.9);
-    background:var(--ink); color:var(--white); font-size:10px; font-weight:700; padding:3px 7px;
-    border-radius:4px; white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .15s ease, transform .15s ease;
-  }
-  .bar-col.show-tip .bar-tip{ opacity:1; transform:translateX(-50%) translateY(-10px) scale(1); }
-
-  .pr-item{ display:flex; align-items:center; justify-content:space-between; padding:16px 0; border-top:1px solid var(--line); }
+  .pr-item{ display:flex; align-items:center; justify-content:space-between; padding:15px 4px; border-top:1px solid var(--line); }
   .pr-item:first-of-type{ border-top:0; }
-  .pr-item .exn{ font-family:'Gabarito'; font-weight:700; font-size:15px; }
+  .pr-item .exn{ font-family:'Gabarito'; font-weight:700; font-size:14.5px; }
   .pr-item .prd{ font-size:11px; color:var(--mute); margin-top:3px; }
-  .pr-item .prv{ font-family:'Gabarito'; font-weight:800; font-size:21px; color:var(--olive); }
-  .pr-item .prv span{ font-size:12px; font-weight:600; color:var(--mute); }
+  .pr-item .prv{ font-family:'Gabarito'; font-weight:800; font-size:20px; color:var(--neon); }
+  .pr-item .prv span{ font-size:11px; font-weight:600; color:var(--mute); }
 
   /* ---------- PROFILE ---------- */
-  .plist .prow{ display:flex; align-items:center; justify-content:space-between; padding:16px 0; border-top:1px solid var(--line); font-size:14.5px; min-height:44px; }
+  .plist .prow{ display:flex; align-items:center; justify-content:space-between; padding:15px 4px; border-top:1px solid var(--line); font-size:14px; min-height:44px; }
   .plist .prow:first-child{ border-top:0; }
-  .plist .prow .pl{ font-weight:500; }
-  .plist .prow .pv{ color:var(--mute); font-size:13px; }
-  .avatar{
-    width:60px; height:60px; border-radius:50%; background:var(--ink);
-    display:flex; align-items:center; justify-content:center;
-    font-family:'Gabarito'; font-weight:800; color:var(--white); font-size:20px; margin-bottom:14px;
-  }
+  .plist .prow .pv{ color:var(--mute); font-size:12.5px; }
+  .avatar{ width:58px; height:58px; border-radius:50%; background:linear-gradient(135deg, var(--neon), #1B8A5E); display:flex; align-items:center; justify-content:center; font-family:'Gabarito'; font-weight:800; color:#062018; font-size:20px; margin:4px 4px 14px; }
 
-  /* ---------- TAB BAR ---------- */
-  .tabbar{
-    position:absolute; bottom:14px; left:20px; right:20px;
-    background:rgba(251,249,244,0.9); backdrop-filter:blur(14px);
-    border:1px solid var(--line); border-radius:26px; display:flex; padding:8px; z-index:40;
-  }
-  @media (max-width:500px){ .tabbar{ position:fixed; bottom:calc(14px + var(--sab)); } }
-  .tabbtn{
-    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
-    background:none; border:0; padding:8px 0; cursor:pointer; color:var(--mute);
-    transition:color .25s ease, transform .15s ease; min-height:44px;
-  }
+  /* ---------- TAB BAR + FAB ---------- */
+  .tabdock{ position:absolute; bottom:14px; left:20px; right:20px; z-index:40; display:flex; gap:10px; align-items:center; }
+  @media (max-width:500px){ .tabdock{ position:fixed; bottom:calc(14px + var(--sab)); } }
+  .tabbar{ flex:1; background:rgba(16,29,22,0.85); backdrop-filter:blur(16px); border:1px solid var(--line); border-radius:24px; display:flex; padding:6px; }
+  .tabbtn{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:0; padding:8px 0; cursor:pointer; color:var(--mute); transition:color .25s ease, transform .15s ease; min-height:44px; }
   .tabbtn:active{ transform:scale(.94); }
-  .tabbtn svg{ width:20px; height:20px; transition:transform .25s ease; }
-  .tabbtn .tlabel{ font-size:9.5px; font-weight:600; letter-spacing:.03em; }
-  .tabbtn.active{ color:var(--ink); }
-  .tabbtn.active svg{ transform:translateY(-1px); }
-
-  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+  .tabbtn svg{ width:19px; height:19px; }
+  .tabbtn .tlabel{ font-size:9px; font-weight:600; }
+  .tabbtn.active{ color:var(--neon); }
+  .fab{ width:52px; height:52px; border-radius:50%; background:var(--neon); border:0; color:#062018; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 8px 24px -6px rgba(51,227,154,0.6); flex-shrink:0; }
+  .fab svg{ width:22px; height:22px; }
+  .fab:active{ transform:scale(.92); }
 
   @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
 </style>
@@ -341,43 +246,73 @@
     <!-- ===================== HOME ===================== -->
     <div class="view" id="view-home">
       <div class="brandrow">
-        <div class="wordmark">ATLAS</div>
-        <div class="datecap" id="datecap">terça-feira</div>
-      </div>
-
-      <div class="eyebrow"><span class="dash"></span>01 — VISÃO GERAL</div>
-      <h1 class="headline"><span id="greeting">Boa tarde.</span>
-        <span class="sub">Seu corpo é o único projeto de longo prazo.</span>
-      </h1>
-
-      <div class="hero-stat">
-        <div class="label">Volume — esta semana</div>
-        <div class="value"><span id="volNum">0</span><span class="unit">kg</span></div>
-        <div class="delta" id="volDelta">Registre seu primeiro treino para começar a curva.</div>
-      </div>
-
-      <div class="stat-grid">
-        <div class="cell"><div class="num" id="numTreinos">0</div><div class="lbl">Treinos<br>concluídos</div></div>
-        <div class="cell"><div class="num" id="numSeq">0</div><div class="lbl">Dias de<br>sequência</div></div>
-        <div class="cell"><div class="num" id="numDur">—</div><div class="lbl">Duração<br>média</div></div>
-      </div>
-
-      <div class="next-card tapable" role="button" tabindex="0" onclick="goTab('train')">
-        <div class="row1">
-          <div class="title">Começar treino</div>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="wordmark">
+          <svg class="logo" viewBox="0 0 24 24" fill="none"><path d="M4 20L12 4L20 20M8 13H16" stroke="var(--neon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          ATLAS
         </div>
-        <div class="focus">Nenhum treino cadastrado ainda</div>
-        <div class="meta"><span>Toque para adicionar exercícios</span></div>
+        <div class="headerbtns">
+          <div class="streakpill">🔥 <span id="streakNum">0</span></div>
+          <button class="iconbtn" onclick="goTab('progress')" aria-label="Progresso">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M3 9h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="datecap" id="datecap">terça-feira, 16 de junho</div>
+
+      <div class="arccard">
+        <div class="arc-badge">Meta semanal</div>
+        <div class="arc-wrap">
+          <svg class="arc-svg" id="homeArc" width="270" height="150" viewBox="0 0 270 150"></svg>
+          <div class="arc-center">
+            <div class="arc-label">Treinos</div>
+            <div class="arc-value"><span id="weekCount">0</span><span class="u">/5</span></div>
+          </div>
+        </div>
+        <div class="arc-pill tapable" onclick="goTab('train')">
+          <div class="dot">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 10v4M21 10v4M6 8v8M18 8v8M6 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <div class="tt" id="nextWorkoutTitle">Nenhum treino cadastrado</div>
+            <div class="ts">Toque para começar</div>
+          </div>
+        </div>
+        <div class="arc-meta">
+          <span>Última sessão: <b id="lastSessionMeta">—</b></span>
+          <span>Volume: <b id="weekVolume">0 kg</b></span>
+        </div>
+      </div>
+
+      <div class="stat2">
+        <div class="tile">
+          <div class="tile-top"><span class="tile-label">ÚLTIMO TREINO</span></div>
+          <div class="tile-value" id="lastWorkoutVal">—</div>
+          <div class="tile-name" id="lastWorkoutName">Nenhum registro</div>
+          <span class="badge neutral" id="lastWorkoutBadge">Sem dados</span>
+        </div>
+        <div class="tile">
+          <div class="tile-top"><span class="tile-label">SEQUÊNCIA</span></div>
+          <div class="tile-value"><span id="streakDays">0</span><span class="u"> dias</span></div>
+          <div class="tile-name">Consecutivos</div>
+          <span class="badge warn">Comece hoje</span>
+        </div>
+      </div>
+
+      <div class="qa-title">Acesso rápido</div>
+      <div class="qa-scroll">
+        <div class="qa-tile qa1 tapable" onclick="goTab('progress')"><div class="glow"></div><svg viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>Recordes</span></div>
+        <div class="qa-tile qa2 tapable" onclick="goTab('train')"><div class="glow"></div><svg viewBox="0 0 24 24" fill="none"><path d="M3 10v4M21 10v4M6 8v8M18 8v8M6 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Exercícios</span></div>
+        <div class="qa-tile qa3 tapable" onclick="goTab('progress')"><div class="glow"></div><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V10M11 20V4M18 20v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>Progresso</span></div>
+        <div class="qa-tile qa4 tapable" onclick="goTab('profile')"><div class="glow"></div><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c1.2-3.8 4.2-5.6 7-5.6s5.8 1.8 7 5.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>Perfil</span></div>
       </div>
     </div>
 
     <!-- ===================== TRAIN ===================== -->
     <div class="view hidden" id="view-train" style="display:none;">
-      <div class="eyebrow"><span class="dash"></span>02 — TREINO</div>
+      <div class="brandrow"><div class="wordmark"><svg class="logo" viewBox="0 0 24 24" fill="none"><path d="M4 20L12 4L20 20M8 13H16" stroke="var(--neon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>ATLAS</div></div>
       <div class="headrow">
-        <h1 class="headline">Empurrar A<span class="sub">Peito · Ombro · Tríceps</span></h1>
-        <div class="sessiontimer" aria-label="Tempo de sessão"><span class="reddot" aria-hidden="true"></span><span id="sessionTime">00:00</span></div>
+        <div class="h1">Treino<span class="sub">Monte sua sessão de hoje</span></div>
+        <div class="sessiontimer" aria-label="Tempo de sessão"><span class="dotpulse" aria-hidden="true"></span><span id="sessionTime">00:00</span></div>
       </div>
 
       <div id="exList"></div>
@@ -385,7 +320,7 @@
       <div class="addex-wrap">
         <button class="addex" onclick="toggleSearch()" aria-expanded="false" id="addexBtn">+ Adicionar exercício</button>
         <div class="exsearch" id="exSearchBox">
-          <input type="text" id="exSearchInput" placeholder="Buscar exercício — ex. supino, agachamento" oninput="onSearchInput()" autocomplete="off">
+          <input type="text" id="exSearchInput" placeholder="Buscar — ex. supino, agachamento" oninput="onSearchInput()" autocomplete="off">
           <div class="exresults" id="exResults"></div>
         </div>
       </div>
@@ -395,16 +330,14 @@
 
     <!-- ===================== PROGRESS ===================== -->
     <div class="view hidden" id="view-progress" style="display:none;">
-      <div class="eyebrow"><span class="dash"></span>03 — PROGRESSO</div>
-      <h1 class="headline">Sua curva
-        <span class="sub">Volume total, últimos 7 dias</span>
-      </h1>
+      <div class="brandrow"><div class="wordmark"><svg class="logo" viewBox="0 0 24 24" fill="none"><path d="M4 20L12 4L20 20M8 13H16" stroke="var(--neon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>ATLAS</div></div>
+      <div class="h1" style="padding:4px 4px 16px;">Progresso<span class="sub">Volume total, últimos 7 dias</span></div>
 
       <div class="chart" id="chart"></div>
-      <div class="emptystate-sub" style="margin-top:-4px; margin-bottom:8px;">Sem dados ainda — a curva aparece a partir do seu primeiro treino registrado.</div>
+      <div class="emptystate-sub" style="margin-top:10px; text-align:left;">Sem dados ainda — a curva aparece a partir do seu primeiro treino registrado.</div>
 
-      <div class="eyebrow" style="margin-top:30px;"><span class="dash"></span>RECORDES PESSOAIS</div>
-      <div class="emptystate">
+      <div class="eyebrow" style="margin-top:28px;">RECORDES PESSOAIS</div>
+      <div class="emptystate" style="padding:30px 4px;">
         <div class="emptystate-title">Nenhum recorde ainda.</div>
         <div class="emptystate-sub">Quando você bater um recorde numa série, ele aparece aqui automaticamente.</div>
       </div>
@@ -412,49 +345,62 @@
 
     <!-- ===================== PROFILE ===================== -->
     <div class="view hidden" id="view-profile" style="display:none;">
-      <div class="eyebrow"><span class="dash"></span>04 — PERFIL</div>
+      <div class="brandrow"><div class="wordmark"><svg class="logo" viewBox="0 0 24 24" fill="none"><path d="M4 20L12 4L20 20M8 13H16" stroke="var(--neon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>ATLAS</div></div>
       <div class="avatar">M</div>
-      <h1 class="headline" style="margin-bottom:8px;">Marcus
-        <span class="sub">Guaratiba, Rio de Janeiro</span>
-      </h1>
+      <div class="h1" style="padding:0 4px 4px;">Marcus<span class="sub">Guaratiba, Rio de Janeiro</span></div>
       <div class="plist" style="margin-top:14px;">
-        <div class="prow"><span class="pl">Objetivo</span><span class="pv">Recomposição corporal</span></div>
-        <div class="prow"><span class="pl">Unidade</span><span class="pv">Quilogramas (kg)</span></div>
-        <div class="prow"><span class="pl">Notificações</span><span class="pv">Ativadas</span></div>
-        <div class="prow"><span class="pl">Sincronização</span><span class="pv">iCloud</span></div>
-        <div class="prow"><span class="pl">Sobre o Atlas</span><span class="pv">v1.0</span></div>
+        <div class="prow"><span>Objetivo</span><span class="pv">Recomposição corporal</span></div>
+        <div class="prow"><span>Unidade</span><span class="pv">Quilogramas (kg)</span></div>
+        <div class="prow"><span>Notificações</span><span class="pv">Ativadas</span></div>
+        <div class="prow"><span>Sincronização</span><span class="pv">iCloud</span></div>
+        <div class="prow"><span>Sobre o Atlas</span><span class="pv">v2.0</span></div>
       </div>
     </div>
 
-    <div class="resttimer" id="restTimer">
-      <button class="rt-adj" onclick="adjustRest(-15)" aria-label="Menos 15 segundos">−15</button>
-      <div class="rt-center">
-        <div class="rt-label">Descanso</div>
-        <div class="rt-time" id="rtTime">01:30</div>
+    <!-- ===================== REST SHEET ===================== -->
+    <div class="restsheet" id="restSheet">
+      <div class="restsheet-top">
+        <span class="restsheet-label">Descanso</span>
+        <button class="restsheet-close" onclick="skipRest()" aria-label="Fechar">✕</button>
       </div>
-      <button class="rt-adj" onclick="adjustRest(15)" aria-label="Mais 15 segundos">+15</button>
-      <button class="rt-skip" onclick="skipRest()">Pular</button>
+      <div class="arc-wrap">
+        <svg class="arc-svg" id="restArc" width="270" height="150" viewBox="0 0 270 150"></svg>
+        <div class="arc-center">
+          <div class="arc-label" id="restExName">Próxima série</div>
+          <div class="arc-value" id="rtTime">01:30</div>
+        </div>
+      </div>
+      <div class="rest-actions">
+        <button class="rest-adj" onclick="adjustRest(-15)">−15s</button>
+        <button class="rest-adj" onclick="adjustRest(15)">+15s</button>
+        <button class="rest-skip" onclick="skipRest()">Pular descanso</button>
+      </div>
     </div>
 
-    <!-- ===================== TAB BAR ===================== -->
-    <nav class="tabbar" aria-label="Navegação principal">
-      <button class="tabbtn active" data-tab="home" aria-current="page">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11.5L12 4l8 7.5M6 10v9a1 1 0 001 1h3v-6h4v6h3a1 1 0 001-1v-9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="tlabel">Início</span>
+    <!-- ===================== TAB DOCK ===================== -->
+    <div class="tabdock">
+      <nav class="tabbar" aria-label="Navegação principal">
+        <button class="tabbtn active" data-tab="home" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11.5L12 4l8 7.5M6 10v9a1 1 0 001 1h3v-6h4v6h3a1 1 0 001-1v-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="tlabel">Início</span>
+        </button>
+        <button class="tabbtn" data-tab="train">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 10v4M21 10v4M6 8v8M18 8v8M6 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="tlabel">Treino</span>
+        </button>
+        <button class="tabbtn" data-tab="progress">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V10M11 20V4M18 20v-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span class="tlabel">Progresso</span>
+        </button>
+        <button class="tabbtn" data-tab="profile">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.5"/><path d="M5 20c1.2-3.8 4.2-5.6 7-5.6s5.8 1.8 7 5.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span class="tlabel">Perfil</span>
+        </button>
+      </nav>
+      <button class="fab" onclick="goTab('train'); setTimeout(toggleSearch, 300);" aria-label="Adicionar exercício">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
-      <button class="tabbtn" data-tab="train">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 10v4M21 10v4M6 8v8M18 8v8M6 12h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="tlabel">Treino</span>
-      </button>
-      <button class="tabbtn" data-tab="progress">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V10M11 20V4M18 20v-7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-        <span class="tlabel">Progresso</span>
-      </button>
-      <button class="tabbtn" data-tab="profile">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.4"/><path d="M5 20c1.2-3.8 4.2-5.6 7-5.6s5.8 1.8 7 5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-        <span class="tlabel">Perfil</span>
-      </button>
-    </nav>
+    </div>
 
   </div>
 </div>
@@ -462,30 +408,52 @@
 <script>
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // ---------- clock + greeting ----------
+  // ---------- clock + date ----------
   function updateClock(){
     const d = new Date();
     document.getElementById('clock').textContent = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
     const days = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
-    document.getElementById('datecap').textContent = days[d.getDay()];
-    const h = d.getHours();
-    document.getElementById('greeting').textContent = h<5 ? 'Boa madrugada.' : h<12 ? 'Bom dia.' : h<18 ? 'Boa tarde.' : 'Boa noite.';
+    const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    document.getElementById('datecap').textContent = `${days[d.getDay()]}, ${d.getDate()} de ${months[d.getMonth()]}`;
   }
   updateClock(); setInterval(updateClock, 15000);
 
+  // ---------- arc / dial renderer (fan of ticks + progress) ----------
+  function renderArc(svgId, percent, glow){
+    const svg = document.getElementById(svgId);
+    const cx = 135, cy = 140, rOuter = 118, rInner = 100, ticks = 32;
+    let html = '';
+    for(let i=0;i<ticks;i++){
+      const t = i/(ticks-1);
+      const angle = Math.PI * (1 - t); // 180deg (left) -> 0deg (right), sweeping the top arc
+      const x1 = cx + rInner*Math.cos(angle), y1 = cy - rInner*Math.sin(angle);
+      const x2 = cx + rOuter*Math.cos(angle), y2 = cy - rOuter*Math.sin(angle);
+      const lit = t <= percent;
+      const color = lit ? (glow||'#33E39A') : 'rgba(255,255,255,0.10)';
+      const width = lit ? 3 : 2;
+      html += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${color}" stroke-width="${width}" stroke-linecap="round" ${lit?`style="filter:drop-shadow(0 0 4px ${glow||'#33E39A'})"`:''}/>`;
+    }
+    svg.innerHTML = html;
+  }
+
+  // ---------- Home hero: weekly goal arc ----------
+  const WEEKLY_GOAL = 5;
+  let weekCount = 0;
+  function renderHomeArc(){
+    renderArc('homeArc', Math.min(weekCount / WEEKLY_GOAL, 1), '#33E39A');
+    document.getElementById('weekCount').textContent = weekCount;
+  }
+  renderHomeArc();
+
   // ---------- tab switching ----------
   const views = { home:'view-home', train:'view-train', progress:'view-progress', profile:'view-profile' };
-  function goTab(target){
-    const btn = document.querySelector(`.tabbtn[data-tab="${target}"]`);
-    if(btn) btn.click();
-  }
+  function goTab(target){ const btn = document.querySelector(`.tabbtn[data-tab="${target}"]`); if(btn) btn.click(); }
   document.querySelectorAll('.tabbtn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const target = btn.dataset.tab;
       if(btn.classList.contains('active')) return;
       document.querySelectorAll('.tabbtn').forEach(b=>{ b.classList.remove('active'); b.removeAttribute('aria-current'); });
       btn.classList.add('active'); btn.setAttribute('aria-current','page');
-
       Object.values(views).forEach(id=>{
         const el = document.getElementById(id);
         if(el.id !== views[target] && el.style.display !== 'none'){
@@ -495,32 +463,12 @@
       });
       const next = document.getElementById(views[target]);
       setTimeout(()=>{ next.style.display='block'; next.scrollTop = 0; }, reduced ? 0 : 190);
-
       if(target==='train' && !sessionRunning) sessionRunning = true;
-      document.getElementById('restTimer').classList.toggle('show', target==='train' && restActive);
     });
   });
 
-  // ---------- home stat count-up ----------
-  function countUp(el, target, duration){
-    if(reduced){ el.textContent = target.toLocaleString('pt-BR'); return; }
-    const start = performance.now();
-    function tick(now){
-      const p = Math.min((now-start)/duration, 1);
-      const eased = 1 - Math.pow(1-p, 3);
-      el.textContent = Math.round(eased*target).toLocaleString('pt-BR');
-      if(p<1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }
-  // Home começa zerada — os números reais entram conforme você registra treinos.
-  document.getElementById('volNum').textContent = '0';
-  document.getElementById('numTreinos').textContent = '0';
-  document.getElementById('numSeq').textContent = '0';
-
-  // ---------- session timer (Treino) ----------
-  let sessionSeconds = 0;
-  let sessionRunning = false;
+  // ---------- session timer ----------
+  let sessionSeconds = 0, sessionRunning = false;
   setInterval(()=>{
     if(!sessionRunning) return;
     sessionSeconds++;
@@ -529,13 +477,12 @@
     document.getElementById('sessionTime').textContent = `${m}:${s}`;
   }, 1000);
 
-  // ---------- rest timer ----------
-  let restActive = false, restInterval = null, restSeconds = 90;
-  function startRest(seconds){
-    restActive = true; restSeconds = seconds || 90;
-    const el = document.getElementById('restTimer');
-    const isTrainOpen = document.getElementById('view-train').style.display !== 'none';
-    if(isTrainOpen) el.classList.add('show');
+  // ---------- rest timer (sheet with arc) ----------
+  let restActive = false, restInterval = null, restSeconds = 90, restTotal = 90;
+  function startRest(seconds, label){
+    restActive = true; restTotal = seconds || 90; restSeconds = restTotal;
+    document.getElementById('restExName').textContent = label || 'Próxima série';
+    document.getElementById('restSheet').classList.add('show');
     clearInterval(restInterval);
     tickRest();
     restInterval = setInterval(tickRest, 1000);
@@ -543,6 +490,7 @@
   function adjustRest(delta){
     if(!restActive) return;
     restSeconds = Math.max(0, restSeconds + delta);
+    restTotal = Math.max(restTotal, restSeconds);
     tickRest(false);
   }
   function tickRest(advance){
@@ -551,22 +499,16 @@
     const m = Math.floor(restSeconds/60).toString().padStart(2,'0');
     const s = (restSeconds%60).toString().padStart(2,'0');
     document.getElementById('rtTime').textContent = `${m}:${s}`;
+    renderArc('restArc', 1 - (restSeconds/restTotal), '#33E39A');
     if(advance) restSeconds--;
   }
-  function endRest(){ restActive = false; clearInterval(restInterval); document.getElementById('restTimer').classList.remove('show'); }
+  function endRest(){ restActive = false; clearInterval(restInterval); document.getElementById('restSheet').classList.remove('show'); }
   function skipRest(){ endRest(); }
 
-  function thumbInner(ex){
-    const mono = `<span class="mono">${ex.code}</span>`;
-    if(ex.img) return mono + `<img class="frame show" src="${ex.img}" alt="" onerror="this.remove()">` + `<div class="tone"></div>`;
-    return mono;
-  }
+  // ---------- icons ----------
   const checkSVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-  // ---------- base local de exercícios (PT-BR) ----------
-  // GIFs de bibliotecas gratuitas de exercício têm proteção anti-hotlink e não
-  // carregam fora do site de origem — em vez disso, cada exercício recebe um
-  // monograma tipográfico por grupo muscular (mais fiel à direção editorial).
+  // ---------- base local de exercícios (PT-BR), fotos hospedadas no próprio repo ----------
   const EXERCISES = [
     { name:'Supino reto — barra', code:'PT', meta:'Peito · Barra', img:'images/barbell-bench-press-medium-grip.jpg' },
     { name:'Supino inclinado — halteres', code:'PT', meta:'Peito · Halteres', img:'images/incline-dumbbell-press.jpg' },
@@ -598,18 +540,20 @@
     { name:'Elevação de pernas', code:'AB', meta:'Abdômen · Peso corporal', img:'images/hanging-leg-raise.jpg' },
   ];
 
-  // ---------- workout state ----------
+  function thumbInner(ex){
+    const mono = `<span class="mono">${ex.code}</span>`;
+    if(ex.img) return mono + `<img class="frame show" src="${ex.img}" alt="" onerror="this.remove()">` + `<div class="tone"></div>`;
+    return mono;
+  }
+
+  // ---------- workout state (em branco) ----------
   let workout = [];
 
   function renderExercises(){
     const list = document.getElementById('exList');
     list.innerHTML = '';
     if(!workout.length){
-      list.innerHTML = `
-        <div class="emptystate">
-          <div class="emptystate-title">Ainda em branco.</div>
-          <div class="emptystate-sub">Use "Adicionar exercício" abaixo para montar seu treino do zero.</div>
-        </div>`;
+      list.innerHTML = `<div class="emptystate"><div class="emptystate-title">Ainda em branco.</div><div class="emptystate-sub">Use "Adicionar exercício" abaixo para montar seu treino do zero.</div></div>`;
       return;
     }
     workout.forEach((ex, exi)=>{
@@ -629,7 +573,7 @@
               <span>${ex.rest}s</span>
             </button>
             <button class="exremove" data-removeex="${exi}" aria-label="Remover exercício" title="Remover exercício">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             </button>
           </div>
         </div>
@@ -647,19 +591,15 @@
       list.appendChild(wrap);
     });
 
-    const REST_PRESETS = [30,45,60,90,120,150,180,240];
     list.querySelectorAll('[data-removeex]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        workout.splice(btn.dataset.removeex, 1);
-        renderExercises();
-      });
+      btn.addEventListener('click', ()=>{ workout.splice(btn.dataset.removeex, 1); renderExercises(); });
     });
+    const REST_PRESETS = [30,45,60,90,120,150,180,240];
     list.querySelectorAll('.restpill').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
         const exi = btn.dataset.restex;
-        const cur = workout[exi].rest;
-        const idx = REST_PRESETS.indexOf(cur);
+        const idx = REST_PRESETS.indexOf(workout[exi].rest);
         workout[exi].rest = REST_PRESETS[(idx+1) % REST_PRESETS.length];
         btn.querySelector('span').textContent = workout[exi].rest + 's';
       });
@@ -670,7 +610,7 @@
         const nowDone = !workout[ex].sets[set].done;
         workout[ex].sets[set].done = nowDone;
         row.classList.toggle('done', nowDone);
-        if(nowDone) startRest(workout[ex].rest || 90);
+        if(nowDone) startRest(workout[ex].rest || 90, workout[ex].name);
       });
     });
     list.querySelectorAll('.sval').forEach(c=>{
@@ -694,7 +634,6 @@
     });
   }
   renderExercises();
-  // imagens já vêm embutidas em cada item de EXERCISES — nada para buscar.
 
   // ---------- add exercise: live search ----------
   function toggleSearch(){
@@ -742,12 +681,7 @@
   week.forEach((w, i)=>{
     const col = document.createElement('div');
     col.className = 'bar-col' + (i===week.length-1 ? ' today' : '');
-    col.innerHTML = `<div class="bar" style="height:110px;"><div class="bar-tip">${w.v}kg</div><div class="fill"></div></div><div class="bar-day">${w.d}</div>`;
-    col.addEventListener('click', ()=>{
-      document.querySelectorAll('.bar-col').forEach(c=>c.classList.remove('show-tip'));
-      col.classList.add('show-tip');
-      setTimeout(()=>col.classList.remove('show-tip'), 1800);
-    });
+    col.innerHTML = `<div class="bar" style="height:110px;"><div class="fill"></div></div><div class="bar-day">${w.d}</div>`;
     chart.appendChild(col);
     setTimeout(()=>{ col.querySelector('.fill').style.height = (w.v/max*100)+'%'; }, 200+i*80);
   });
