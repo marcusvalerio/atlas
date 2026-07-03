@@ -229,17 +229,30 @@
   .resttimer{
     position:fixed; left:20px; right:20px; bottom:100px; z-index:60;
     background:var(--ink); color:var(--white); border-radius:26px;
-    padding:12px 18px; display:none; align-items:center; justify-content:space-between;
+    padding:10px 10px 10px 16px; display:none; align-items:center; gap:8px;
     box-shadow:0 20px 40px -15px rgba(20,19,16,0.5);
   }
   .resttimer.show{ display:flex; }
+  .resttimer .rt-center{ flex:1; text-align:center; }
   .resttimer .rt-label{ font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; opacity:.6; }
   .resttimer .rt-time{ font-family:'Gabarito'; font-weight:800; font-size:20px; margin-top:1px; }
+  .resttimer .rt-adj{
+    background:rgba(255,255,255,0.1); border:0; color:var(--white); font-size:11px; font-weight:700;
+    width:38px; height:38px; border-radius:50%; cursor:pointer; flex-shrink:0;
+  }
   .resttimer .rt-skip{
     background:rgba(255,255,255,0.12); border:0; color:var(--white); font-size:11px; font-weight:600;
-    padding:8px 14px; border-radius:16px; cursor:pointer; letter-spacing:.03em;
+    padding:8px 14px; border-radius:16px; cursor:pointer; letter-spacing:.03em; flex-shrink:0;
   }
   @media (max-width:500px){ .resttimer{ bottom:calc(96px + var(--sab)); } }
+
+  .restpill{
+    display:flex; align-items:center; gap:5px; background:transparent; border:1px solid var(--line);
+    border-radius:16px; padding:7px 11px; color:var(--mute); font-family:'Inter'; font-weight:600;
+    font-size:11.5px; cursor:pointer; flex-shrink:0; align-self:flex-start; min-height:36px;
+  }
+  .restpill svg{ width:13px; height:13px; }
+  .restpill:active{ border-color:var(--ink); color:var(--ink); }
 
   /* ---------- PROGRESS ---------- */
   .chart{ display:flex; align-items:flex-end; justify-content:space-between; height:150px; margin-top:8px; padding-bottom:10px; border-bottom:1px solid var(--line); }
@@ -400,10 +413,12 @@
     </div>
 
     <div class="resttimer" id="restTimer">
-      <div>
+      <button class="rt-adj" onclick="adjustRest(-15)" aria-label="Menos 15 segundos">−15</button>
+      <div class="rt-center">
         <div class="rt-label">Descanso</div>
         <div class="rt-time" id="rtTime">01:30</div>
       </div>
+      <button class="rt-adj" onclick="adjustRest(15)" aria-label="Mais 15 segundos">+15</button>
       <button class="rt-skip" onclick="skipRest()">Pular</button>
     </div>
 
@@ -502,8 +517,8 @@
 
   // ---------- rest timer ----------
   let restActive = false, restInterval = null, restSeconds = 90;
-  function startRest(){
-    restActive = true; restSeconds = 90;
+  function startRest(seconds){
+    restActive = true; restSeconds = seconds || 90;
     const el = document.getElementById('restTimer');
     const isTrainOpen = document.getElementById('view-train').style.display !== 'none';
     if(isTrainOpen) el.classList.add('show');
@@ -511,55 +526,26 @@
     tickRest();
     restInterval = setInterval(tickRest, 1000);
   }
-  function tickRest(){
+  function adjustRest(delta){
+    if(!restActive) return;
+    restSeconds = Math.max(0, restSeconds + delta);
+    tickRest(false);
+  }
+  function tickRest(advance){
+    if(advance === undefined) advance = true;
     if(restSeconds<=0){ endRest(); return; }
     const m = Math.floor(restSeconds/60).toString().padStart(2,'0');
     const s = (restSeconds%60).toString().padStart(2,'0');
     document.getElementById('rtTime').textContent = `${m}:${s}`;
-    restSeconds--;
+    if(advance) restSeconds--;
   }
   function endRest(){ restActive = false; clearInterval(restInterval); document.getElementById('restTimer').classList.remove('show'); }
   function skipRest(){ endRest(); }
 
   function thumbInner(ex){
     const mono = `<span class="mono">${ex.code}</span>`;
-    if(ex.frames && ex.frames.length){
-      return mono + ex.frames.map((f,i)=>`<img class="frame ${i===0?'show':''}" src="${f}" alt="">`).join('') + `<div class="tone"></div>`;
-    }
+    if(ex.img) return mono + `<img class="frame show" src="${ex.img}" alt="" onerror="this.remove()">` + `<div class="tone"></div>`;
     return mono;
-  }
-
-  // ---------- wger.de (projeto open-source, dados sob CC-BY-SA) ----------
-  // https://wger.de/en/software/api — endpoints de leitura são públicos, sem
-  // necessidade de chave. Não consigo testar CORS a partir do meu sandbox (o
-  // robots.txt deles bloqueia acesso automatizado), então isso está montado
-  // para nunca quebrar: se falhar, cada exercício simplesmente mostra o
-  // monograma, exatamente como já funciona hoje.
-  let exerciseImages = {};
-  async function loadWgerImages(){
-    for(const ex of EXERCISES){
-      const term = ex.match.split(' - ')[0];
-      try{
-        const ctrl = new AbortController();
-        const t = setTimeout(()=>ctrl.abort(), 3000);
-        const res = await fetch(`https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(term)}&language=2&format=json`, { signal: ctrl.signal });
-        clearTimeout(t);
-        if(res.ok){
-          const json = await res.json();
-          const items = json.suggestions || json.results || [];
-          const first = items[0];
-          const d = first && (first.data || first);
-          const img = d && (d.image || d.image_thumbnail || d.thumbnail);
-          if(img) exerciseImages[ex.match.toLowerCase()] = [ img.startsWith('http') ? img : `https://wger.de${img}` ];
-        }
-      }catch(e){ /* silencioso — mantém o monograma para este exercício */ }
-      await new Promise(r=>setTimeout(r, 140)); // não martela a API pública
-    }
-    hydrateFrames();
-  }
-  function hydrateFrames(){
-    workout.forEach(ex=>{ if(!ex.frames && ex.match){ const imgs = exerciseImages[ex.match.toLowerCase()]; if(imgs && imgs.length) ex.frames = imgs; } });
-    renderExercises();
   }
   const checkSVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -568,34 +554,34 @@
   // carregam fora do site de origem — em vez disso, cada exercício recebe um
   // monograma tipográfico por grupo muscular (mais fiel à direção editorial).
   const EXERCISES = [
-    { name:'Supino reto — barra', code:'PT', meta:'Peito · Barra', match:'Barbell Bench Press - Medium Grip' },
-    { name:'Supino inclinado — halteres', code:'PT', meta:'Peito · Halteres', match:'Incline Dumbbell Press' },
-    { name:'Crucifixo — polia', code:'PT', meta:'Peito · Polia', match:'Cable Crossover' },
-    { name:'Peck deck (voador)', code:'PT', meta:'Peito · Máquina', match:'Butterfly' },
-    { name:'Desenvolvimento militar — barra', code:'OM', meta:'Ombro · Barra', match:'Standing Military Press' },
-    { name:'Elevação lateral — halteres', code:'OM', meta:'Ombro · Halteres', match:'Side Lateral Raise' },
-    { name:'Elevação frontal — halteres', code:'OM', meta:'Ombro · Halteres', match:'Front Dumbbell Raise' },
-    { name:'Encolhimento — barra', code:'OM', meta:'Trapézio · Barra', match:'Barbell Shrug' },
-    { name:'Remada curvada — barra', code:'CO', meta:'Costas · Barra', match:'Bent Over Barbell Row' },
-    { name:'Puxada frontal — polia', code:'CO', meta:'Costas · Polia', match:'Wide-Grip Lat Pulldown' },
-    { name:'Barra fixa', code:'CO', meta:'Costas · Peso corporal', match:'Pullups' },
-    { name:'Remada baixa — polia', code:'CO', meta:'Costas · Polia', match:'Seated Cable Rows' },
-    { name:'Levantamento terra — barra', code:'CO', meta:'Costas · Barra', match:'Barbell Deadlift' },
-    { name:'Rosca direta — barra', code:'BI', meta:'Bíceps · Barra', match:'Barbell Curl' },
-    { name:'Rosca alternada — halteres', code:'BI', meta:'Bíceps · Halteres', match:'Dumbbell Alternate Bicep Curl' },
-    { name:'Rosca martelo', code:'BI', meta:'Bíceps · Halteres', match:'Hammer Curls' },
-    { name:'Extensão de tríceps — polia', code:'TR', meta:'Tríceps · Polia', match:'Triceps Pushdown' },
-    { name:'Tríceps testa — barra', code:'TR', meta:'Tríceps · Barra', match:'Lying Triceps Press' },
-    { name:'Mergulho — paralelas', code:'TR', meta:'Tríceps · Peso corporal', match:'Dips - Triceps Version' },
-    { name:'Agachamento livre — barra', code:'PR', meta:'Pernas · Barra', match:'Barbell Squat' },
-    { name:'Leg press', code:'PR', meta:'Pernas · Máquina', match:'Leg Press' },
-    { name:'Cadeira extensora', code:'PR', meta:'Pernas · Máquina', match:'Leg Extensions' },
-    { name:'Mesa flexora', code:'PR', meta:'Pernas · Máquina', match:'Lying Leg Curls' },
-    { name:'Panturrilha em pé', code:'PR', meta:'Pernas · Máquina', match:'Standing Calf Raises' },
-    { name:'Stiff — barra', code:'PR', meta:'Pernas · Barra', match:'Stiff-Legged Barbell Deadlift' },
-    { name:'Prancha', code:'AB', meta:'Abdômen · Peso corporal', match:'Plank' },
-    { name:'Abdominal supra', code:'AB', meta:'Abdômen · Peso corporal', match:'Crunches' },
-    { name:'Elevação de pernas', code:'AB', meta:'Abdômen · Peso corporal', match:'Hanging Leg Raise' },
+    { name:'Supino reto — barra', code:'PT', meta:'Peito · Barra', img:'images/barbell-bench-press-medium-grip.jpg' },
+    { name:'Supino inclinado — halteres', code:'PT', meta:'Peito · Halteres', img:'images/incline-dumbbell-press.jpg' },
+    { name:'Crucifixo — polia', code:'PT', meta:'Peito · Polia', img:'images/cable-crossover.jpg' },
+    { name:'Peck deck (voador)', code:'PT', meta:'Peito · Máquina', img:'images/butterfly.jpg' },
+    { name:'Desenvolvimento militar — barra', code:'OM', meta:'Ombro · Barra', img:'images/standing-military-press.jpg' },
+    { name:'Elevação lateral — halteres', code:'OM', meta:'Ombro · Halteres', img:'images/side-lateral-raise.jpg' },
+    { name:'Elevação frontal — halteres', code:'OM', meta:'Ombro · Halteres', img:'images/front-dumbbell-raise.jpg' },
+    { name:'Encolhimento — barra', code:'OM', meta:'Trapézio · Barra', img:'images/barbell-shrug.jpg' },
+    { name:'Remada curvada — barra', code:'CO', meta:'Costas · Barra', img:'images/bent-over-barbell-row.jpg' },
+    { name:'Puxada frontal — polia', code:'CO', meta:'Costas · Polia', img:'images/wide-grip-lat-pulldown.jpg' },
+    { name:'Barra fixa', code:'CO', meta:'Costas · Peso corporal', img:'images/pullups.jpg' },
+    { name:'Remada baixa — polia', code:'CO', meta:'Costas · Polia', img:'images/seated-cable-rows.jpg' },
+    { name:'Levantamento terra — barra', code:'CO', meta:'Costas · Barra', img:'images/barbell-deadlift.jpg' },
+    { name:'Rosca direta — barra', code:'BI', meta:'Bíceps · Barra', img:'images/barbell-curl.jpg' },
+    { name:'Rosca alternada — halteres', code:'BI', meta:'Bíceps · Halteres', img:'images/dumbbell-alternate-bicep-curl.jpg' },
+    { name:'Rosca martelo', code:'BI', meta:'Bíceps · Halteres', img:'images/hammer-curls.jpg' },
+    { name:'Extensão de tríceps — polia', code:'TR', meta:'Tríceps · Polia', img:'images/triceps-pushdown.jpg' },
+    { name:'Tríceps testa — barra', code:'TR', meta:'Tríceps · Barra', img:'images/lying-triceps-press.jpg' },
+    { name:'Mergulho — paralelas', code:'TR', meta:'Tríceps · Peso corporal', img:'images/dips-triceps-version.jpg' },
+    { name:'Agachamento livre — barra', code:'PR', meta:'Pernas · Barra', img:'images/barbell-squat.jpg' },
+    { name:'Leg press', code:'PR', meta:'Pernas · Máquina', img:'images/leg-press.jpg' },
+    { name:'Cadeira extensora', code:'PR', meta:'Pernas · Máquina', img:'images/leg-extensions.jpg' },
+    { name:'Mesa flexora', code:'PR', meta:'Pernas · Máquina', img:'images/lying-leg-curls.jpg' },
+    { name:'Panturrilha em pé', code:'PR', meta:'Pernas · Máquina', img:'images/standing-calf-raises.jpg' },
+    { name:'Stiff — barra', code:'PR', meta:'Pernas · Barra', img:'images/stiff-legged-barbell-deadlift.jpg' },
+    { name:'Prancha', code:'AB', meta:'Abdômen · Peso corporal', img:'images/plank.jpg' },
+    { name:'Abdominal supra', code:'AB', meta:'Abdômen · Peso corporal', img:'images/crunches.jpg' },
+    { name:'Elevação de pernas', code:'AB', meta:'Abdômen · Peso corporal', img:'images/hanging-leg-raise.jpg' },
   ];
 
   // ---------- workout state ----------
@@ -613,15 +599,20 @@
       return;
     }
     workout.forEach((ex, exi)=>{
+      if(ex.rest === undefined) ex.rest = 90;
       const wrap = document.createElement('div');
       wrap.className = 'exercise';
       wrap.innerHTML = `
         <div class="exmedia">
           <div class="thumb">${thumbInner(ex)}</div>
-          <div>
+          <div style="flex:1;">
             <div class="exname">${ex.name}</div>
             <div class="exmeta">${ex.meta}</div>
           </div>
+          <button class="restpill" data-restex="${exi}" title="Toque para mudar o tempo de descanso">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.4"/><path d="M12 8v4.5l3 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>${ex.rest}s</span>
+          </button>
         </div>
         <div class="setlabels"><span>Série</span><span>Kg</span><span>Reps</span><span></span></div>
         ${ex.sets.map((s,si)=>`
@@ -637,13 +628,24 @@
       list.appendChild(wrap);
     });
 
+    const REST_PRESETS = [30,45,60,90,120,150,180,240];
+    list.querySelectorAll('.restpill').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const exi = btn.dataset.restex;
+        const cur = workout[exi].rest;
+        const idx = REST_PRESETS.indexOf(cur);
+        workout[exi].rest = REST_PRESETS[(idx+1) % REST_PRESETS.length];
+        btn.querySelector('span').textContent = workout[exi].rest + 's';
+      });
+    });
     list.querySelectorAll('.setrow').forEach(row=>{
       row.addEventListener('click', ()=>{
         const {ex, set} = row.dataset;
         const nowDone = !workout[ex].sets[set].done;
         workout[ex].sets[set].done = nowDone;
         row.classList.toggle('done', nowDone);
-        if(nowDone) startRest();
+        if(nowDone) startRest(workout[ex].rest || 90);
       });
     });
     list.querySelectorAll('.sval').forEach(c=>{
@@ -667,7 +669,7 @@
     });
   }
   renderExercises();
-  loadWgerImages();
+  // imagens já vêm embutidas em cada item de EXERCISES — nada para buscar.
 
   // ---------- add exercise: live search ----------
   function toggleSearch(){
@@ -685,20 +687,15 @@
     if(q.length < 2){ box.innerHTML = ''; return; }
     const matches = EXERCISES.filter(ex=>ex.name.toLowerCase().includes(q)).slice(0,6);
     if(!matches.length){ box.innerHTML = '<div class="exempty">Nenhum exercício encontrado — tente outro termo.</div>'; return; }
-    box.innerHTML = matches.map((m)=>{
-      const imgs = exerciseImages[m.match.toLowerCase()];
-      const frames = imgs && imgs.length ? imgs : null;
-      return `
+    box.innerHTML = matches.map((m)=>`
       <div class="exresult">
-        <div class="thumb">${thumbInner({code:m.code, frames})}</div>
+        <div class="thumb">${thumbInner(m)}</div>
         <div><div class="rn">${m.name}</div><div class="rm">${m.meta}</div></div>
-      </div>`;
-    }).join('');
+      </div>`).join('');
     box.querySelectorAll('.exresult').forEach((el,i)=>{
       el.addEventListener('click', ()=>{
         const m = matches[i];
-        const imgs = exerciseImages[m.match.toLowerCase()];
-        workout.push({ name:m.name, meta:m.meta, code:m.code, match:m.match, frames: imgs && imgs.length ? imgs : null, sets:[{kg:20, reps:10, done:false}] });
+        workout.push({ name:m.name, meta:m.meta, code:m.code, img:m.img, rest:90, sets:[{kg:20, reps:10, done:false}] });
         renderExercises();
         toggleSearch();
         document.getElementById('exSearchInput').value = '';
