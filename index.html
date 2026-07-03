@@ -149,11 +149,17 @@
   .setlabels{ display:grid; grid-template-columns:30px 1fr 1fr 30px; padding:0 0 6px; }
   .setlabels span{ font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--mute); }
   .setlabels span:nth-child(2), .setlabels span:nth-child(3){ text-align:center; }
-  .setrow{ display:grid; grid-template-columns:30px 1fr 1fr 30px; align-items:center; padding:11px 8px; border-radius:12px; margin:0 -8px; cursor:pointer; min-height:44px; transition:background .15s ease; }
+  .srow-wrap{ position:relative; border-radius:12px; margin:0 -8px; overflow:hidden; }
+  .srow-delete{
+    position:absolute; inset:0; background:#C24A38; display:flex; align-items:center; justify-content:flex-end;
+    padding-right:20px; border-radius:12px;
+  }
+  .srow-delete svg{ width:17px; height:17px; }
+  .setrow{ display:grid; grid-template-columns:30px 1fr 1fr 30px; align-items:center; padding:11px 8px; border-radius:12px; cursor:pointer; min-height:44px; background:var(--card); touch-action:pan-y; position:relative; }
   .setrow .sidx{ font-size:11.5px; font-weight:600; color:var(--mute); }
   .setrow .sval{ font-family:'Gabarito'; font-weight:700; font-size:19px; text-align:center; color:var(--ink); outline:none; padding:6px 0; }
   .setrow .sval[contenteditable="true"]:focus{ color:var(--neon); }
-  .setrow.done{ background:rgba(51,227,154,0.08); }
+  .setrow.done{ background:#122A20; }
   .setrow.done .sval{ color:var(--mute); text-decoration:line-through; text-decoration-color:rgba(255,255,255,0.2); }
   .scheck{ display:flex; justify-content:flex-end; }
   .scheck-badge{ width:22px; height:22px; border-radius:50%; border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center; transition:all .2s ease; }
@@ -260,6 +266,7 @@
   .ob-nav{ display:flex; gap:10px; margin-top:20px; }
   .ob-back{ flex:1; padding:15px; background:transparent; border:1px solid var(--line); border-radius:14px; color:var(--mute); font-weight:700; font-size:13.5px; cursor:pointer; }
   .ob-next{ flex:2; padding:15px; background:var(--neon); border:0; border-radius:14px; color:#062018; font-family:'Gabarito'; font-weight:800; font-size:14.5px; cursor:pointer; }
+  .ob-step > .ob-next{ flex:none; width:100%; }
 </style>
 </head>
 <body>
@@ -809,11 +816,14 @@
         </div>
         <div class="setlabels"><span>Série</span><span>Kg</span><span>Reps</span><span></span></div>
         ${ex.sets.map((s,si)=>`
-          <div class="setrow ${s.done?'done':''}" data-ex="${exi}" data-set="${si}">
-            <div class="sidx">${si+1}</div>
-            <div class="sval" contenteditable="true" inputmode="decimal" data-field="kg" aria-label="Peso em quilos" onclick="event.stopPropagation()">${s.kg}</div>
-            <div class="sval" contenteditable="true" inputmode="numeric" data-field="reps" aria-label="Repetições" onclick="event.stopPropagation()">${s.reps}</div>
-            <div class="scheck"><div class="scheck-badge">${checkSVG}</div></div>
+          <div class="srow-wrap">
+            <div class="srow-delete"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0v12a1 1 0 001 1h6a1 1 0 001-1V7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="setrow ${s.done?'done':''}" data-ex="${exi}" data-set="${si}">
+              <div class="sidx">${si+1}</div>
+              <div class="sval" contenteditable="true" inputmode="decimal" data-field="kg" aria-label="Peso em quilos" onclick="event.stopPropagation()">${s.kg}</div>
+              <div class="sval" contenteditable="true" inputmode="numeric" data-field="reps" aria-label="Repetições" onclick="event.stopPropagation()">${s.reps}</div>
+              <div class="scheck"><div class="scheck-badge">${checkSVG}</div></div>
+            </div>
           </div>
         `).join('')}
         <button class="addset" data-addset="${exi}">+ Adicionar série</button>
@@ -834,8 +844,53 @@
         btn.querySelector('span').textContent = workout[exi].rest + 's';
       });
     });
+    let suppressRowClick = false;
     list.querySelectorAll('.setrow').forEach(row=>{
+      let startX=0, startY=0, dx=0, dragging=false, decided=false, isHorizontal=false;
+      const THRESHOLD = 68;
+      row.addEventListener('pointerdown', (e)=>{
+        startX = e.clientX; startY = e.clientY; dx = 0; dragging = true; decided = false; isHorizontal = false;
+        row.style.transition = 'none';
+        try{ row.setPointerCapture(e.pointerId); }catch(err){}
+      });
+      row.addEventListener('pointermove', (e)=>{
+        if(!dragging) return;
+        const dxRaw = e.clientX - startX, dyRaw = e.clientY - startY;
+        if(!decided){
+          if(Math.abs(dxRaw) > 8 || Math.abs(dyRaw) > 8){ decided = true; isHorizontal = Math.abs(dxRaw) > Math.abs(dyRaw); }
+          else return;
+        }
+        if(!isHorizontal) return;
+        dx = Math.max(-96, Math.min(0, dxRaw));
+        row.style.transform = `translateX(${dx}px)`;
+      });
+      function endDrag(){
+        if(!dragging) return;
+        dragging = false;
+        row.style.transition = 'transform .28s cubic-bezier(.22,1,.36,1)';
+        if(isHorizontal && dx < -THRESHOLD){
+          row.style.transform = 'translateX(-100%)';
+          const wrap = row.closest('.srow-wrap');
+          wrap.style.transition = 'max-height .25s ease .1s, opacity .25s ease .1s, margin .25s ease .1s';
+          wrap.style.maxHeight = wrap.offsetHeight + 'px';
+          requestAnimationFrame(()=>{ wrap.style.maxHeight = '0px'; wrap.style.opacity = '0'; });
+          suppressRowClick = true;
+          setTimeout(()=>{
+            const {ex, set} = row.dataset;
+            workout[ex].sets.splice(set, 1);
+            renderExercises();
+            suppressRowClick = false;
+          }, 300);
+        } else {
+          row.style.transform = 'translateX(0)';
+          if(isHorizontal){ suppressRowClick = true; setTimeout(()=>suppressRowClick = false, 80); }
+        }
+        isHorizontal = false; decided = false;
+      }
+      row.addEventListener('pointerup', endDrag);
+      row.addEventListener('pointercancel', endDrag);
       row.addEventListener('click', ()=>{
+        if(suppressRowClick) return;
         const {ex, set} = row.dataset;
         const nowDone = !workout[ex].sets[set].done;
         workout[ex].sets[set].done = nowDone;
