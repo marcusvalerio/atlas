@@ -151,7 +151,13 @@
     border:1px solid var(--line); flex-shrink:0; overflow:hidden;
     display:flex; align-items:center; justify-content:center; position:relative;
   }
-  .thumb .mono{ font-family:'Gabarito'; font-weight:700; font-size:17px; letter-spacing:.02em; color:var(--ink-soft); }
+  .thumb .mono{ font-family:'Gabarito'; font-weight:700; font-size:17px; letter-spacing:.02em; color:var(--ink-soft); z-index:1; }
+  .thumb .frame{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 20%;
+    filter:grayscale(1) contrast(1.1) brightness(1.05); opacity:0; transition:opacity .7s ease; z-index:2;
+  }
+  .thumb .frame.show{ opacity:1; }
+  .thumb .tone{ position:absolute; inset:0; background:var(--paper-2); mix-blend-mode:multiply; opacity:.14; z-index:3; pointer-events:none; }
   .exresult .thumb .mono{ font-size:13px; }
   .exname{ font-family:'Gabarito'; font-weight:700; font-size:16.5px; }
   .exmeta{ font-size:11px; color:var(--mute); margin-top:3px; letter-spacing:.01em; }
@@ -506,7 +512,50 @@
   function endRest(){ restActive = false; clearInterval(restInterval); document.getElementById('restTimer').classList.remove('show'); }
   function skipRest(){ endRest(); }
 
-  // ---------- icons ----------
+  function thumbInner(ex){
+    const mono = `<span class="mono">${ex.code}</span>`;
+    if(ex.frames && ex.frames.length){
+      return mono + ex.frames.map((f,i)=>`<img class="frame ${i===0?'show':''}" src="${f}" alt="">`).join('') + `<div class="tone"></div>`;
+    }
+    return mono;
+  }
+
+  // ---------- Free Exercise DB (domínio público, hospedado no GitHub) ----------
+  // https://github.com/yuhonas/free-exercise-db — fotos reais em preto e branco,
+  // tratadas para combinar com a paleta do app. CORS liberado, sem hotlink block.
+  let exerciseImages = {};
+  async function loadFreeExerciseDB(){
+    try{
+      const ctrl = new AbortController();
+      const timeout = setTimeout(()=>ctrl.abort(), 6000);
+      const res = await fetch('https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json', { signal: ctrl.signal });
+      clearTimeout(timeout);
+      if(!res.ok) throw new Error('status ' + res.status);
+      const data = await res.json();
+      data.forEach(item=>{
+        exerciseImages[item.name.toLowerCase()] = (item.images||[]).slice(0,2)
+          .map(p=>`https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${p}`);
+      });
+    }catch(e){
+      console.info('Free Exercise DB indisponível no momento — mantendo monogramas.');
+    }
+    hydrateFrames();
+  }
+  function hydrateFrames(){
+    workout.forEach(ex=>{ if(!ex.frames && ex.match){ const imgs = exerciseImages[ex.match.toLowerCase()]; if(imgs && imgs.length) ex.frames = imgs; } });
+    renderExercises();
+  }
+  // alterna entre os dois frames de cada miniatura, criando o efeito de movimento
+  setInterval(()=>{
+    if(reduced) return;
+    document.querySelectorAll('.thumb').forEach(t=>{
+      const frames = t.querySelectorAll('.frame');
+      if(frames.length < 2) return;
+      const shown = t.querySelector('.frame.show') || frames[0];
+      shown.classList.remove('show');
+      (shown === frames[0] ? frames[1] : frames[0]).classList.add('show');
+    });
+  }, 1000);
   const checkSVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   // ---------- base local de exercícios (PT-BR) ----------
@@ -514,38 +563,41 @@
   // carregam fora do site de origem — em vez disso, cada exercício recebe um
   // monograma tipográfico por grupo muscular (mais fiel à direção editorial).
   const EXERCISES = [
-    { name:'Supino reto — barra', code:'PT', meta:'Peito · Barra' },
-    { name:'Supino inclinado — halteres', code:'PT', meta:'Peito · Halteres' },
-    { name:'Crucifixo — polia', code:'PT', meta:'Peito · Polia' },
-    { name:'Crossover', code:'PT', meta:'Peito · Polia' },
-    { name:'Desenvolvimento militar — barra', code:'OM', meta:'Ombro · Barra' },
-    { name:'Elevação lateral — halteres', code:'OM', meta:'Ombro · Halteres' },
-    { name:'Elevação frontal — halteres', code:'OM', meta:'Ombro · Halteres' },
-    { name:'Remada curvada — barra', code:'CO', meta:'Costas · Barra' },
-    { name:'Puxada frontal — polia', code:'CO', meta:'Costas · Polia' },
-    { name:'Barra fixa', code:'CO', meta:'Costas · Peso corporal' },
-    { name:'Remada baixa — polia', code:'CO', meta:'Costas · Polia' },
-    { name:'Rosca direta — barra', code:'BI', meta:'Bíceps · Barra' },
-    { name:'Rosca alternada — halteres', code:'BI', meta:'Bíceps · Halteres' },
-    { name:'Rosca martelo', code:'BI', meta:'Bíceps · Halteres' },
-    { name:'Extensão de tríceps — polia', code:'TR', meta:'Tríceps · Polia' },
-    { name:'Tríceps testa — barra', code:'TR', meta:'Tríceps · Barra' },
-    { name:'Mergulho — paralelas', code:'TR', meta:'Tríceps · Peso corporal' },
-    { name:'Agachamento livre — barra', code:'PR', meta:'Pernas · Barra' },
-    { name:'Leg press', code:'PR', meta:'Pernas · Máquina' },
-    { name:'Cadeira extensora', code:'PR', meta:'Pernas · Máquina' },
-    { name:'Mesa flexora', code:'PR', meta:'Pernas · Máquina' },
-    { name:'Panturrilha em pé', code:'PR', meta:'Pernas · Máquina' },
-    { name:'Prancha', code:'AB', meta:'Abdômen · Peso corporal' },
-    { name:'Abdominal supra', code:'AB', meta:'Abdômen · Peso corporal' },
-    { name:'Elevação de pernas', code:'AB', meta:'Abdômen · Peso corporal' },
+    { name:'Supino reto — barra', code:'PT', meta:'Peito · Barra', match:'Barbell Bench Press - Medium Grip' },
+    { name:'Supino inclinado — halteres', code:'PT', meta:'Peito · Halteres', match:'Incline Dumbbell Press' },
+    { name:'Crucifixo — polia', code:'PT', meta:'Peito · Polia', match:'Cable Crossover' },
+    { name:'Peck deck (voador)', code:'PT', meta:'Peito · Máquina', match:'Butterfly' },
+    { name:'Desenvolvimento militar — barra', code:'OM', meta:'Ombro · Barra', match:'Standing Military Press' },
+    { name:'Elevação lateral — halteres', code:'OM', meta:'Ombro · Halteres', match:'Side Lateral Raise' },
+    { name:'Elevação frontal — halteres', code:'OM', meta:'Ombro · Halteres', match:'Front Dumbbell Raise' },
+    { name:'Encolhimento — barra', code:'OM', meta:'Trapézio · Barra', match:'Barbell Shrug' },
+    { name:'Remada curvada — barra', code:'CO', meta:'Costas · Barra', match:'Bent Over Barbell Row' },
+    { name:'Puxada frontal — polia', code:'CO', meta:'Costas · Polia', match:'Wide-Grip Lat Pulldown' },
+    { name:'Barra fixa', code:'CO', meta:'Costas · Peso corporal', match:'Pullups' },
+    { name:'Remada baixa — polia', code:'CO', meta:'Costas · Polia', match:'Seated Cable Rows' },
+    { name:'Levantamento terra — barra', code:'CO', meta:'Costas · Barra', match:'Barbell Deadlift' },
+    { name:'Rosca direta — barra', code:'BI', meta:'Bíceps · Barra', match:'Barbell Curl' },
+    { name:'Rosca alternada — halteres', code:'BI', meta:'Bíceps · Halteres', match:'Dumbbell Alternate Bicep Curl' },
+    { name:'Rosca martelo', code:'BI', meta:'Bíceps · Halteres', match:'Hammer Curls' },
+    { name:'Extensão de tríceps — polia', code:'TR', meta:'Tríceps · Polia', match:'Triceps Pushdown' },
+    { name:'Tríceps testa — barra', code:'TR', meta:'Tríceps · Barra', match:'Lying Triceps Press' },
+    { name:'Mergulho — paralelas', code:'TR', meta:'Tríceps · Peso corporal', match:'Dips - Triceps Version' },
+    { name:'Agachamento livre — barra', code:'PR', meta:'Pernas · Barra', match:'Barbell Squat' },
+    { name:'Leg press', code:'PR', meta:'Pernas · Máquina', match:'Leg Press' },
+    { name:'Cadeira extensora', code:'PR', meta:'Pernas · Máquina', match:'Leg Extensions' },
+    { name:'Mesa flexora', code:'PR', meta:'Pernas · Máquina', match:'Lying Leg Curls' },
+    { name:'Panturrilha em pé', code:'PR', meta:'Pernas · Máquina', match:'Standing Calf Raises' },
+    { name:'Stiff — barra', code:'PR', meta:'Pernas · Barra', match:'Stiff-Legged Barbell Deadlift' },
+    { name:'Prancha', code:'AB', meta:'Abdômen · Peso corporal', match:'Plank' },
+    { name:'Abdominal supra', code:'AB', meta:'Abdômen · Peso corporal', match:'Crunches' },
+    { name:'Elevação de pernas', code:'AB', meta:'Abdômen · Peso corporal', match:'Hanging Leg Raise' },
   ];
 
   // ---------- workout state ----------
   let workout = [
-    { name:'Supino reto — barra', meta:'Peito · Barra', code:'PT',
+    { name:'Supino reto — barra', meta:'Peito · Barra', code:'PT', match:'Barbell Bench Press - Medium Grip',
       sets:[ {kg:60, reps:10, done:true}, {kg:65, reps:8, done:true}, {kg:65, reps:8, done:false} ] },
-    { name:'Extensão de tríceps — polia', meta:'Tríceps · Polia', code:'TR',
+    { name:'Extensão de tríceps — polia', meta:'Tríceps · Polia', code:'TR', match:'Triceps Pushdown',
       sets:[ {kg:22, reps:12, done:true}, {kg:26, reps:10, done:false} ] },
   ];
 
@@ -557,7 +609,7 @@
       wrap.className = 'exercise';
       wrap.innerHTML = `
         <div class="exmedia">
-          <div class="thumb"><span class="mono">${ex.code}</span></div>
+          <div class="thumb">${thumbInner(ex)}</div>
           <div>
             <div class="exname">${ex.name}</div>
             <div class="exmeta">${ex.meta}</div>
@@ -607,6 +659,7 @@
     });
   }
   renderExercises();
+  loadFreeExerciseDB();
 
   // ---------- add exercise: live search ----------
   function toggleSearch(){
@@ -624,16 +677,20 @@
     if(q.length < 2){ box.innerHTML = ''; return; }
     const matches = EXERCISES.filter(ex=>ex.name.toLowerCase().includes(q)).slice(0,6);
     if(!matches.length){ box.innerHTML = '<div class="exempty">Nenhum exercício encontrado — tente outro termo.</div>'; return; }
-    box.innerHTML = matches.map((m)=>`
+    box.innerHTML = matches.map((m)=>{
+      const imgs = exerciseImages[m.match.toLowerCase()];
+      const frames = imgs && imgs.length ? imgs : null;
+      return `
       <div class="exresult">
-        <div class="thumb"><span class="mono">${m.code}</span></div>
+        <div class="thumb">${thumbInner({code:m.code, frames})}</div>
         <div><div class="rn">${m.name}</div><div class="rm">${m.meta}</div></div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
     box.querySelectorAll('.exresult').forEach((el,i)=>{
       el.addEventListener('click', ()=>{
         const m = matches[i];
-        workout.push({ name:m.name, meta:m.meta, code:m.code, sets:[{kg:20, reps:10, done:false}] });
+        const imgs = exerciseImages[m.match.toLowerCase()];
+        workout.push({ name:m.name, meta:m.meta, code:m.code, match:m.match, frames: imgs && imgs.length ? imgs : null, sets:[{kg:20, reps:10, done:false}] });
         renderExercises();
         toggleSearch();
         document.getElementById('exSearchInput').value = '';
