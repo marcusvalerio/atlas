@@ -119,8 +119,11 @@
   .headrow{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:4px 4px 16px; }
   .h1{ font-family:'Gabarito'; font-weight:800; font-size:26px; letter-spacing:-.02em; }
   .h1 .sub{ display:block; font-size:12.5px; font-weight:500; color:var(--mute); margin-top:4px; }
-  .sessiontimer{ font-family:'Gabarito'; font-weight:700; font-size:13px; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:7px 12px; display:flex; align-items:center; gap:6px; white-space:nowrap; margin-top:2px; }
-  .sessiontimer .dotpulse{ width:6px; height:6px; border-radius:50%; background:var(--neon); animation:pulse 1.6s ease-in-out infinite; }
+  .sessiontimer{ font-family:'Gabarito'; font-weight:700; font-size:13px; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:7px 14px 7px 10px; display:flex; align-items:center; gap:7px; white-space:nowrap; margin-top:2px; cursor:pointer; color:var(--ink); }
+  .sessiontimer.running{ border-color:var(--neon); }
+  .sessionicon{ width:16px; height:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .sessionicon svg{ width:100%; height:100%; }
+  .dotpulse{ width:6px; height:6px; border-radius:50%; background:var(--neon); animation:pulse 1.6s ease-in-out infinite; }
   @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
 
   .emptystate{ padding:50px 12px 30px; text-align:center; }
@@ -226,12 +229,100 @@
   .fab:active{ transform:scale(.92); }
 
   @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+
+  /* ---------- ONBOARDING ---------- */
+  .onboard{
+    position:absolute; inset:0; z-index:200; background:radial-gradient(120% 60% at 50% -10%, #142620 0%, var(--bg) 55%);
+    display:none; flex-direction:column; padding:calc(24px + var(--sat)) 26px calc(30px + var(--sab));
+  }
+  .onboard.show{ display:flex; }
+  .ob-dots{ display:flex; gap:6px; justify-content:center; margin-bottom:30px; }
+  .ob-dots span{ width:6px; height:6px; border-radius:50%; background:var(--line); transition:all .25s ease; }
+  .ob-dots span.active{ background:var(--neon); width:18px; }
+  .ob-step{ flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .ob-step[data-step="1"], .ob-step[data-step="2"], .ob-step[data-step="3"]{ align-items:stretch; text-align:left; }
+  .ob-spacer{ flex:1; }
+  .ob-eyebrow{ font-size:11px; font-weight:700; letter-spacing:.14em; color:var(--neon); margin-bottom:10px; }
+  .ob-title{ font-family:'Gabarito'; font-weight:800; font-size:26px; letter-spacing:-.02em; margin:16px 0 10px; line-height:1.15; }
+  .ob-title.small{ font-size:22px; margin-top:0; }
+  .ob-sub{ font-size:13.5px; color:var(--mute); line-height:1.5; max-width:280px; margin:0 auto; }
+  .ob-step[data-step="1"] .ob-sub, .ob-step[data-step="2"] .ob-sub, .ob-step[data-step="3"] .ob-sub{ margin:0; }
+  .ob-input{ margin-top:20px; width:100%; padding:16px; font-family:'Gabarito'; font-weight:700; font-size:18px; background:var(--card); border:1px solid var(--line); border-radius:16px; color:var(--ink); outline:none; }
+  .ob-input:focus{ border-color:var(--neon); }
+  .ob-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:22px; }
+  .ob-chip{ padding:16px 0; text-align:center; background:var(--card); border:1px solid var(--line); border-radius:14px; font-family:'Gabarito'; font-weight:800; font-size:17px; cursor:pointer; }
+  .ob-chip.sel{ background:var(--neon-dim); border-color:var(--neon); color:var(--neon); }
+  .ob-list{ display:flex; flex-direction:column; gap:10px; margin-top:22px; }
+  .ob-opt{ display:flex; align-items:center; gap:12px; padding:15px 16px; background:var(--card); border:1px solid var(--line); border-radius:14px; cursor:pointer; }
+  .ob-opt .ot{ font-family:'Gabarito'; font-weight:700; font-size:14px; }
+  .ob-opt .os{ font-size:11px; color:var(--mute); margin-top:2px; }
+  .ob-opt.sel{ border-color:var(--neon); background:var(--neon-dim); }
+  .ob-nav{ display:flex; gap:10px; margin-top:20px; }
+  .ob-back{ flex:1; padding:15px; background:transparent; border:1px solid var(--line); border-radius:14px; color:var(--mute); font-weight:700; font-size:13.5px; cursor:pointer; }
+  .ob-next{ flex:2; padding:15px; background:var(--neon); border:0; border-radius:14px; color:#062018; font-family:'Gabarito'; font-weight:800; font-size:14.5px; cursor:pointer; }
 </style>
 </head>
 <body>
 
 <div class="device">
   <div class="notch"></div>
+
+  <div class="onboard" id="onboard">
+    <div class="ob-dots" id="obDots"></div>
+
+    <div class="ob-step" data-step="0">
+      <div class="ob-spacer"></div>
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none"><path d="M4 20L12 4L20 20M8 13H16" stroke="var(--neon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="ob-title">Bem-vindo ao ATLAS.</div>
+      <div class="ob-sub">Vamos configurar seu treino em menos de um minuto.</div>
+      <div class="ob-spacer"></div>
+      <button class="ob-next" onclick="obNext()">Começar</button>
+    </div>
+
+    <div class="ob-step" data-step="1" style="display:none;">
+      <div class="ob-eyebrow">01</div>
+      <div class="ob-title small">Como podemos te chamar?</div>
+      <input class="ob-input" id="obName" type="text" placeholder="Seu nome" autocomplete="off">
+      <div class="ob-spacer"></div>
+      <div class="ob-nav">
+        <button class="ob-back" onclick="obBack()">Voltar</button>
+        <button class="ob-next" onclick="obNext()">Continuar</button>
+      </div>
+    </div>
+
+    <div class="ob-step" data-step="2" style="display:none;">
+      <div class="ob-eyebrow">02</div>
+      <div class="ob-title small">Quantos dias por semana você treina?</div>
+      <div class="ob-sub">Isso define sua meta semanal no Início.</div>
+      <div class="ob-grid" id="obFreqGrid"></div>
+      <div class="ob-spacer"></div>
+      <div class="ob-nav">
+        <button class="ob-back" onclick="obBack()">Voltar</button>
+        <button class="ob-next" onclick="obNext()">Continuar</button>
+      </div>
+    </div>
+
+    <div class="ob-step" data-step="3" style="display:none;">
+      <div class="ob-eyebrow">03</div>
+      <div class="ob-title small">Qual seu objetivo principal?</div>
+      <div class="ob-sub">Isso ajusta o descanso padrão sugerido entre séries.</div>
+      <div class="ob-list" id="obGoalList"></div>
+      <div class="ob-spacer"></div>
+      <div class="ob-nav">
+        <button class="ob-back" onclick="obBack()">Voltar</button>
+        <button class="ob-next" onclick="obNext()">Continuar</button>
+      </div>
+    </div>
+
+    <div class="ob-step" data-step="4" style="display:none;">
+      <div class="ob-spacer"></div>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M5 13l5 5L20 7" stroke="var(--neon)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="ob-title" id="obFinalTitle">Tudo pronto.</div>
+      <div class="ob-sub" id="obFinalSub">Sua meta está configurada.</div>
+      <div class="ob-spacer"></div>
+      <button class="ob-next" onclick="obFinish()">Ir para o ATLAS</button>
+    </div>
+  </div>
   <div class="screen">
 
     <div class="statusbar">
@@ -312,7 +403,10 @@
       <div class="brandrow"><div class="wordmark"><svg class="logo" viewBox="0 0 24 24" fill="none"><path d="M4 20L12 4L20 20M8 13H16" stroke="var(--neon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>ATLAS</div></div>
       <div class="headrow">
         <div class="h1">Treino<span class="sub">Monte sua sessão de hoje</span></div>
-        <div class="sessiontimer" aria-label="Tempo de sessão"><span class="dotpulse" aria-hidden="true"></span><span id="sessionTime">00:00</span></div>
+        <button class="sessiontimer" id="sessionBtn" onclick="toggleSession()" aria-label="Iniciar ou pausar treino">
+          <span id="sessionIcon" class="sessionicon"></span>
+          <span id="sessionTime">Iniciar</span>
+        </button>
       </div>
 
       <div id="exList"></div>
@@ -346,8 +440,8 @@
     <!-- ===================== PROFILE ===================== -->
     <div class="view hidden" id="view-profile" style="display:none;">
       <div class="brandrow"><div class="wordmark"><svg class="logo" viewBox="0 0 24 24" fill="none"><path d="M4 20L12 4L20 20M8 13H16" stroke="var(--neon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>ATLAS</div></div>
-      <div class="avatar">M</div>
-      <div class="h1" style="padding:0 4px 4px;">Marcus<span class="sub">Guaratiba, Rio de Janeiro</span></div>
+      <div class="avatar">V</div>
+      <div class="h1" style="padding:0 4px 4px;"><span class="profile-name">Você</span><span class="sub">Guaratiba, Rio de Janeiro</span></div>
       <div class="plist" style="margin-top:14px;">
         <div class="prow"><span>Objetivo</span><span class="pv">Recomposição corporal</span></div>
         <div class="prow"><span>Unidade</span><span class="pv">Quilogramas (kg)</span></div>
@@ -436,14 +530,129 @@
     svg.innerHTML = html;
   }
 
-  // ---------- Home hero: weekly goal arc ----------
-  const WEEKLY_GOAL = 5;
+  // ---------- progresso persistente ----------
+  let WEEKLY_GOAL = 5;
   let weekCount = 0;
+  let streakDays = 0;
+  let userName = '';
+  let userGoal = 'hipertrofia';
+
+  function loadProgress(){
+    try{
+      const raw = localStorage.getItem('atlas_state');
+      if(raw){
+        const s = JSON.parse(raw);
+        WEEKLY_GOAL = s.weeklyGoal || 5;
+        weekCount = s.weekCount || 0;
+        streakDays = s.streakDays || 0;
+        userName = s.name || '';
+        userGoal = s.goal || 'hipertrofia';
+      }
+    }catch(e){}
+  }
+  function saveProgress(){
+    try{
+      localStorage.setItem('atlas_state', JSON.stringify({ weeklyGoal: WEEKLY_GOAL, weekCount, streakDays, name: userName, goal: userGoal }));
+    }catch(e){}
+  }
   function renderHomeArc(){
     renderArc('homeArc', Math.min(weekCount / WEEKLY_GOAL, 1), '#33E39A');
     document.getElementById('weekCount').textContent = weekCount;
+    document.getElementById('weekCount').nextElementSibling.textContent = '/' + WEEKLY_GOAL;
   }
+  function updateHomeStats(){
+    document.getElementById('streakNum').textContent = streakDays;
+    document.getElementById('streakDays').textContent = streakDays;
+    if(streakDays > 0){
+      const badge = document.querySelector('.stat2 .tile:nth-child(2) .badge');
+      badge.textContent = 'Em dia'; badge.className = 'badge ok';
+    }
+    if(weekCount > 0){
+      document.getElementById('lastWorkoutBadge').textContent = 'Registrado';
+      document.getElementById('lastWorkoutBadge').className = 'badge ok';
+      document.getElementById('lastWorkoutName').textContent = 'Sessão de hoje';
+      document.getElementById('lastWorkoutVal').textContent = weekCount + (weekCount===1?' treino':' treinos');
+    }
+    if(userName){
+      document.querySelectorAll('.profile-name').forEach(el=> el.textContent = userName);
+      document.querySelector('.avatar').textContent = userName[0].toUpperCase();
+    }
+  }
+  loadProgress();
   renderHomeArc();
+  updateHomeStats();
+
+  // ---------- onboarding ----------
+  const REST_BY_GOAL = { hipertrofia:90, forca:150, emagrecimento:45, saude:60 };
+  const GOAL_LABEL = { hipertrofia:'Hipertrofia', forca:'Força máxima', emagrecimento:'Emagrecimento', saude:'Saúde geral' };
+  let obData = { name:'', freq:5, goal:'hipertrofia' };
+  let obStep = 0;
+  const OB_STEPS = 5;
+
+  function obRenderDots(){
+    const dots = document.getElementById('obDots');
+    dots.innerHTML = Array.from({length:OB_STEPS}).map((_,i)=>`<span class="${i===obStep?'active':''}"></span>`).join('');
+  }
+  function obShow(){
+    document.querySelectorAll('.ob-step').forEach(s=> s.style.display = (+s.dataset.step === obStep) ? 'flex' : 'none');
+    obRenderDots();
+  }
+  function obNext(){
+    if(obStep===1) obData.name = document.getElementById('obName').value.trim();
+    if(obStep < OB_STEPS-1){ obStep++; obShow(); if(obStep===4) obFillSummary(); }
+  }
+  function obBack(){ if(obStep>0){ obStep--; obShow(); } }
+  function obFillSummary(){
+    document.getElementById('obFinalTitle').textContent = obData.name ? `Prontinho, ${obData.name}.` : 'Tudo pronto.';
+    document.getElementById('obFinalSub').textContent = `Meta de ${obData.freq}x por semana · foco em ${GOAL_LABEL[obData.goal].toLowerCase()}. Você pode mudar isso depois no Perfil.`;
+  }
+  function buildOnboardOptions(){
+    const grid = document.getElementById('obFreqGrid');
+    grid.innerHTML = [2,3,4,5,6,7].map(n=>`<div class="ob-chip ${n===obData.freq?'sel':''}" data-freq="${n}">${n}</div>`).join('');
+    grid.querySelectorAll('.ob-chip').forEach(c=>{
+      c.addEventListener('click', ()=>{ obData.freq = +c.dataset.freq; grid.querySelectorAll('.ob-chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); });
+    });
+    const list = document.getElementById('obGoalList');
+    const goals = [
+      {k:'hipertrofia', t:'Hipertrofia', s:'Ganho de massa muscular — descanso de 90s'},
+      {k:'forca', t:'Força máxima', s:'Cargas altas, poucas reps — descanso de 150s'},
+      {k:'emagrecimento', t:'Emagrecimento', s:'Mais densidade, menos pausa — descanso de 45s'},
+      {k:'saude', t:'Saúde geral', s:'Consistência acima de intensidade — descanso de 60s'},
+    ];
+    list.innerHTML = goals.map(g=>`<div class="ob-opt ${g.k===obData.goal?'sel':''}" data-goal="${g.k}"><div><div class="ot">${g.t}</div><div class="os">${g.s}</div></div></div>`).join('');
+    list.querySelectorAll('.ob-opt').forEach(o=>{
+      o.addEventListener('click', ()=>{ obData.goal = o.dataset.goal; list.querySelectorAll('.ob-opt').forEach(x=>x.classList.remove('sel')); o.classList.add('sel'); });
+    });
+  }
+  function obFinish(){
+    WEEKLY_GOAL = obData.freq;
+    userName = obData.name;
+    userGoal = obData.goal;
+    DEFAULT_REST = REST_BY_GOAL[obData.goal] || 90;
+    saveProgress();
+    renderHomeArc();
+    updateHomeStats();
+    document.getElementById('onboard').classList.remove('show');
+  }
+  let DEFAULT_REST = 90;
+  function initOnboarding(){
+    const done = localStorage.getItem('atlas_onboarded');
+    buildOnboardOptions();
+    if(done){
+      DEFAULT_REST = REST_BY_GOAL[userGoal] || 90;
+      updateHomeStats();
+      return;
+    }
+    document.getElementById('onboard').classList.add('show');
+    obShow();
+  }
+  // marca como concluído assim que o usuário sai da tela final
+  document.addEventListener('click', (e)=>{
+    if(e.target && e.target.matches('.ob-next') && obStep === OB_STEPS-1){
+      localStorage.setItem('atlas_onboarded','1');
+    }
+  });
+  initOnboarding();
 
   // ---------- tab switching ----------
   const views = { home:'view-home', train:'view-train', progress:'view-progress', profile:'view-profile' };
@@ -463,19 +672,40 @@
       });
       const next = document.getElementById(views[target]);
       setTimeout(()=>{ next.style.display='block'; next.scrollTop = 0; }, reduced ? 0 : 190);
-      if(target==='train' && !sessionRunning) sessionRunning = true;
     });
   });
 
-  // ---------- session timer ----------
-  let sessionSeconds = 0, sessionRunning = false;
-  setInterval(()=>{
-    if(!sessionRunning) return;
-    sessionSeconds++;
+  // ---------- session timer: iniciar / pausar / retomar ----------
+  const iconPlay = '<svg viewBox="0 0 24 24" fill="none"><path d="M6 4.5v15l13-7.5-13-7.5z" fill="currentColor"/></svg>';
+  const iconPause = '<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="4" width="5" height="16" rx="1.5" fill="currentColor"/><rect x="14" y="4" width="5" height="16" rx="1.5" fill="currentColor"/></svg>';
+  const iconDot = '<span class="dotpulse"></span>';
+  let sessionSeconds = 0, sessionState = 'idle'; // idle | running | paused
+  function toggleSession(){
+    sessionState = sessionState === 'running' ? 'paused' : 'running';
+    updateSessionUI();
+  }
+  function updateSessionUI(){
+    const btn = document.getElementById('sessionBtn');
+    const icon = document.getElementById('sessionIcon');
+    btn.classList.toggle('running', sessionState==='running');
+    if(sessionState==='running') icon.innerHTML = iconDot;
+    else if(sessionState==='paused') icon.innerHTML = iconPlay;
+    else icon.innerHTML = iconPlay;
+    document.getElementById('sessionTime').textContent = sessionLabel();
+  }
+  function sessionLabel(){
+    if(sessionState==='idle' && sessionSeconds===0) return 'Iniciar';
     const m = Math.floor(sessionSeconds/60).toString().padStart(2,'0');
     const s = (sessionSeconds%60).toString().padStart(2,'0');
-    document.getElementById('sessionTime').textContent = `${m}:${s}`;
+    return `${m}:${s}`;
+  }
+  function resetSession(){ sessionSeconds = 0; sessionState = 'idle'; updateSessionUI(); }
+  setInterval(()=>{
+    if(sessionState !== 'running') return;
+    sessionSeconds++;
+    document.getElementById('sessionTime').textContent = sessionLabel();
   }, 1000);
+  updateSessionUI();
 
   // ---------- rest timer (sheet with arc) ----------
   let restActive = false, restInterval = null, restSeconds = 90, restTotal = 90;
@@ -659,7 +889,7 @@
     box.querySelectorAll('.exresult').forEach((el,i)=>{
       el.addEventListener('click', ()=>{
         const m = matches[i];
-        workout.push({ name:m.name, meta:m.meta, code:m.code, img:m.img, rest:90, sets:[{kg:20, reps:10, done:false}] });
+        workout.push({ name:m.name, meta:m.meta, code:m.code, img:m.img, rest:DEFAULT_REST, sets:[{kg:20, reps:10, done:false}] });
         renderExercises();
         toggleSearch();
         document.getElementById('exSearchInput').value = '';
@@ -669,6 +899,12 @@
 
   function finishWorkout(){
     endRest();
+    resetSession();
+    weekCount = Math.min(weekCount + 1, WEEKLY_GOAL);
+    streakDays++;
+    saveProgress();
+    renderHomeArc();
+    updateHomeStats();
     const bar = document.querySelector('.finishbar');
     bar.textContent = 'Treino registrado ✓';
     setTimeout(()=>{ bar.textContent = 'Concluir treino'; }, 1800);
