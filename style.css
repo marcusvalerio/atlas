@@ -294,6 +294,28 @@
   .auth-error{ font-size:11.5px; margin-top:10px; min-height:14px; text-align:left; }
   .auth-toggle{ width:100%; margin-top:14px; background:transparent; border:0; color:var(--mute); font-size:12.5px; font-weight:600; cursor:pointer; padding:8px; }
   .auth-toggle:active{ color:var(--ink); }
+  #authForgot{ font-size:11px; opacity:.75; }
+
+  .loadbar{
+    position:absolute; top:0; left:0; right:0; height:2.5px; z-index:600;
+    background:transparent; overflow:hidden; opacity:0; transition:opacity .25s ease; pointer-events:none;
+  }
+  .loadbar.show{ opacity:1; }
+  .loadbar-fill{
+    height:100%; width:40%; background:var(--neon); box-shadow:0 0 8px rgba(51,227,154,0.7);
+    animation:loadsweep 1.1s ease-in-out infinite;
+  }
+  @keyframes loadsweep{ 0%{ transform:translateX(-100%); } 100%{ transform:translateX(250%); } }
+
+  .errtoast{
+    position:fixed; bottom:100px; left:20px; right:20px; z-index:400;
+    background:#2A1512; border:1px solid #E8674A; border-radius:16px; padding:13px 16px;
+    display:flex; align-items:center; gap:10px; transform:translateY(120%); opacity:0;
+    transition:transform .35s cubic-bezier(.22,1,.36,1), opacity .3s ease;
+  }
+  .errtoast.show{ transform:translateY(0); opacity:1; }
+  .errtoast .et-text{ font-size:12px; color:#F3C9BE; font-weight:600; }
+  @media (max-width:500px){ .errtoast{ bottom:calc(96px + var(--sab)); } }
 
   /* ---------- ONBOARDING ---------- */
   .onboard{
