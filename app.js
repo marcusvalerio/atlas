@@ -57,10 +57,10 @@
   }
   function saveProgress(){
     if(!currentUser) return;
-    sb.from('profiles').upsert({
+    queueWrite({ type:'upsert', table:'profiles', payload:{
       id: currentUser.id, name: userName, weekly_goal: WEEKLY_GOAL, goal: userGoal,
       week_count: weekCount, streak_days: streakDays, week_start: weekStartDB, updated_at: new Date().toISOString()
-    }).then(({error})=>{ if(error) console.error('saveProgress', error); });
+    }});
   }
   function renderHomeArc(){
     renderArc('homeArc', Math.min(weekCount / WEEKLY_GOAL, 1), '#33E39A');
@@ -107,9 +107,9 @@
   // ---------- rascunho do treino em andamento ----------
   function saveWorkoutDraft(){
     if(!currentUser) return;
-    sb.from('workout_draft').upsert({
+    queueWrite({ type:'upsert', table:'workout_draft', payload:{
       user_id: currentUser.id, routine_name: activeRoutineName || null, exercises: workout, updated_at: new Date().toISOString()
-    }).then(({error})=>{ if(error) console.error('saveWorkoutDraft', error); });
+    }});
   }
   async function loadWorkoutDraftCloud(){
     const { data } = await sb.from('workout_draft').select('*').eq('user_id', currentUser.id).maybeSingle();
@@ -125,7 +125,7 @@
   function saveRecordRow(name){
     if(!currentUser) return;
     const r = records[name];
-    sb.from('records').upsert({ user_id: currentUser.id, exercise_name:name, weight:r.weight, reps:r.reps, date:r.date }).then(({error})=>{ if(error) console.error('saveRecordRow', error); });
+    queueWrite({ type:'upsert', table:'records', payload:{ user_id: currentUser.id, exercise_name:name, weight:r.weight, reps:r.reps, date:r.date } });
   }
   let records = {};
 
@@ -138,7 +138,7 @@
   function saveLastPerfRow(name){
     if(!currentUser) return;
     const r = lastPerf[name];
-    sb.from('last_performed').upsert({ user_id: currentUser.id, exercise_name:name, kg:r.kg, reps:r.reps, date:r.date }).then(({error})=>{ if(error) console.error('saveLastPerfRow', error); });
+    queueWrite({ type:'upsert', table:'last_performed', payload:{ user_id: currentUser.id, exercise_name:name, kg:r.kg, reps:r.reps, date:r.date } });
   }
   let lastPerf = {};
   function recordLastPerf(name, kg, reps){
@@ -183,10 +183,10 @@
   }
   function insertHistoryRow(entry){
     if(!currentUser) return;
-    sb.from('workout_history').insert({
+    queueWrite({ type:'insert', table:'workout_history', payload:{
       user_id: currentUser.id, date: entry.date, exercises: entry.exercises,
       total_volume: entry.totalVolume, total_sets: entry.totalSets, minutes: entry.minutes
-    }).then(({error})=>{ if(error) console.error('insertHistoryRow', error); });
+    }});
   }
   let history = [];
   function renderHistory(){
@@ -487,13 +487,18 @@
     routines = (data||[]).map(r=>({ id:r.id, name:r.name, exercises:r.exercises }));
   }
   async function insertRoutineRow(routine){
-    const { data, error } = await sb.from('routines').insert({ user_id: currentUser.id, name: routine.name, exercises: routine.exercises }).select().single();
-    if(error){ console.error('insertRoutineRow', error); return null; }
-    return data;
+    try{
+      const { data, error } = await sb.from('routines').insert({ user_id: currentUser.id, name: routine.name, exercises: routine.exercises }).select().single();
+      if(error) throw error;
+      return data;
+    }catch(e){
+      showErrorToast('Não foi possível salvar a rotina — confira sua conexão e tenta de novo.');
+      return null;
+    }
   }
   function deleteRoutineRow(id){
     if(!id) return;
-    sb.from('routines').delete().eq('id', id).then(({error})=>{ if(error) console.error('deleteRoutineRow', error); });
+    queueWrite({ type:'delete', table:'routines', matchColumn:'id', matchValue:id });
   }
   let routines = [];
   let activeRoutineName = '';
@@ -772,6 +777,62 @@
     document.getElementById('exSearchInput').value = '';
   }
 
+  // ---------- UI: barra de carregamento fina (nunca bloqueia toque) + toast de erro ----------
+  function showLoadBar(){ document.getElementById('loadBar').classList.add('show'); }
+  function hideLoadBar(){ document.getElementById('loadBar').classList.remove('show'); }
+  function withTimeout(promise, ms){
+    return Promise.race([promise, new Promise(resolve=>setTimeout(()=>resolve(null), ms))]);
+  }
+  let errToastTimer = null;
+  function showErrorToast(msg){
+    const t = document.getElementById('errToast');
+    document.getElementById('etText').textContent = msg;
+    t.classList.add('show');
+    clearTimeout(errToastTimer);
+    errToastTimer = setTimeout(()=> t.classList.remove('show'), 3400);
+  }
+
+  // ---------- fila de escrita offline (outbox) ----------
+  // Guarda só operações pendentes de sincronizar — não é mais o estado do app,
+  // que agora vive no Supabase. Isso é só uma rede de segurança pra quedas de conexão.
+  function loadOutbox(){ try{ return JSON.parse(localStorage.getItem('atlas_outbox') || '[]'); }catch(e){ return []; } }
+  function saveOutbox(){ try{ localStorage.setItem('atlas_outbox', JSON.stringify(outbox)); }catch(e){} }
+  let outbox = loadOutbox();
+  let flushing = false;
+  function queueWrite(op){
+    if(op.type === 'upsert'){
+      const key = JSON.stringify(op.payload.id ?? op.payload.user_id ?? '') + (op.payload.exercise_name || '');
+      outbox = outbox.filter(o => !(o.type==='upsert' && o.table===op.table && (JSON.stringify(o.payload.id ?? o.payload.user_id ?? '') + (o.payload.exercise_name||'')) === key));
+    }
+    outbox.push({ ...op, _id: Date.now() + '-' + Math.random().toString(36).slice(2) });
+    saveOutbox();
+    flushOutbox();
+  }
+  async function flushOutbox(){
+    if(flushing || !currentUser || !outbox.length) return;
+    flushing = true;
+    let hadRealError = false;
+    while(outbox.length){
+      const op = outbox[0];
+      try{
+        let res;
+        if(op.type === 'upsert') res = await sb.from(op.table).upsert(op.payload);
+        else if(op.type === 'insert') res = await sb.from(op.table).insert(op.payload);
+        else if(op.type === 'delete') res = await sb.from(op.table).delete().eq(op.matchColumn, op.matchValue);
+        if(res.error) throw res.error;
+        outbox.shift();
+        saveOutbox();
+      }catch(e){
+        if(navigator.onLine) hadRealError = true; // online mas falhou de verdade (RLS, auth expirado, etc.)
+        break; // mantém a fila e tenta de novo depois — preserva a ordem
+      }
+    }
+    flushing = false;
+    if(hadRealError) showErrorToast('Não foi possível salvar — tenta de novo em alguns segundos.');
+  }
+  window.addEventListener('online', flushOutbox);
+  setInterval(flushOutbox, 12000);
+
   function calcSessionStats(){
     let totalSets = 0, totalVolume = 0;
     workout.forEach(ex => ex.sets.forEach(s=>{ if(s.done){ totalSets++; totalVolume += (s.kg||0) * (s.reps||0); } }));
@@ -861,15 +922,17 @@
   // ---------- boot: autenticação + carregamento do app ----------
   async function bootApp(){
     document.getElementById('authScreen').classList.remove('show');
-    const hasProfile = await loadProgressCloud();
+    showLoadBar();
+    const hasProfile = await withTimeout(loadProgressCloud(), 6000);
     checkWeekReset();
-    await Promise.all([
+    await withTimeout(Promise.all([
       loadWorkoutDraftCloud(),
       loadRecordsCloud(),
       loadLastPerfCloud(),
       loadRoutinesCloud(),
       loadHistoryCloud()
-    ]);
+    ]), 6000);
+    hideLoadBar();
     DEFAULT_REST = REST_BY_GOAL[userGoal] || 90;
     renderHomeArc();
     updateHomeStats();
@@ -934,6 +997,50 @@
       btn.disabled = false;
     }
   }
+  async function handleForgotPassword(){
+    const email = document.getElementById('authEmail').value.trim();
+    const errEl = document.getElementById('authError');
+    if(!email){ errEl.style.color = '#E8674A'; errEl.textContent = 'Digite seu email acima primeiro.'; return; }
+    try{
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+      if(error) throw error;
+      errEl.style.color = 'var(--neon)';
+      errEl.textContent = 'Link enviado — confira seu email.';
+    }catch(e){
+      errEl.style.color = '#E8674A';
+      errEl.textContent = 'Não foi possível enviar o link agora.';
+    }
+  }
+  function showPasswordResetForm(){
+    document.getElementById('authScreen').classList.add('show');
+    document.querySelector('.auth-form').style.display = 'none';
+    document.getElementById('authTitle').textContent = 'Nova senha';
+    document.getElementById('resetForm').style.display = 'block';
+  }
+  async function handleSetNewPassword(){
+    const pass = document.getElementById('newPassword').value;
+    const errEl = document.getElementById('resetError');
+    errEl.style.color = '#E8674A'; errEl.textContent = '';
+    if(!pass || pass.length < 6){ errEl.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+    const btn = document.getElementById('resetSubmitBtn');
+    btn.textContent = 'Salvando…'; btn.disabled = true;
+    try{
+      const { error } = await sb.auth.updateUser({ password: pass });
+      if(error) throw error;
+      document.getElementById('resetForm').style.display = 'none';
+      document.querySelector('.auth-form').style.display = 'block';
+      const { data:{ session } } = await sb.auth.getSession();
+      currentUser = session.user;
+      await bootApp();
+    }catch(e){
+      errEl.textContent = 'Não foi possível salvar a nova senha — tenta de novo.';
+      btn.textContent = 'Salvar nova senha'; btn.disabled = false;
+    }
+  }
+  sb.auth.onAuthStateChange((event)=>{
+    if(event === 'PASSWORD_RECOVERY') showPasswordResetForm();
+  });
+
   async function initAuthFlow(){
     const { data:{ session } } = await sb.auth.getSession();
     if(session){
