@@ -146,6 +146,7 @@
   .thumb .tone{ position:absolute; inset:0; background:linear-gradient(180deg, transparent, rgba(10,16,13,0.6)); z-index:2; pointer-events:none; }
   .exname{ font-family:'Gabarito'; font-weight:700; font-size:15.5px; }
   .exmeta{ font-size:11px; color:var(--mute); margin-top:2px; }
+  .exlast{ font-size:10.5px; color:var(--neon); margin-top:3px; font-weight:600; }
   .excontrols{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
   .restpill{ display:flex; align-items:center; gap:5px; background:var(--bg-2); border:1px solid var(--line); border-radius:14px; padding:6px 10px; color:var(--neon); font-weight:700; font-size:11px; cursor:pointer; min-height:32px; }
   .restpill svg{ width:12px; height:12px; }
@@ -207,6 +208,18 @@
   .rest-actions{ display:flex; gap:10px; margin-top:16px; }
   .rest-adj{ flex:1; background:rgba(255,255,255,0.06); border:0; color:var(--ink); font-weight:700; font-size:13px; padding:13px; border-radius:14px; cursor:pointer; }
   .rest-skip{ flex:1.4; background:var(--neon); border:0; color:#062018; font-weight:800; font-size:13px; padding:13px; border-radius:14px; cursor:pointer; }
+  .restsheet.tall{ max-height:74vh; overflow-y:auto; }
+  .routine-item{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 0; border-top:1px solid var(--line); }
+  .routine-item:first-child{ border-top:0; }
+  .routine-info{ display:flex; align-items:center; gap:12px; min-width:0; }
+  .routine-badge{ width:38px; height:38px; border-radius:12px; background:var(--bg-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:'Gabarito'; font-weight:800; font-size:12px; color:var(--neon); flex-shrink:0; }
+  .routine-name{ font-family:'Gabarito'; font-weight:700; font-size:14px; }
+  .routine-meta{ font-size:10.5px; color:var(--mute); margin-top:2px; }
+  .routine-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .routine-start{ background:var(--neon-dim); border:1px solid var(--neon); color:var(--neon); font-weight:700; font-size:11.5px; padding:8px 14px; border-radius:12px; cursor:pointer; }
+  .chip-ex{ flex-shrink:0; padding:9px 14px; border-radius:14px; background:var(--card); border:1px solid var(--line); font-size:11.5px; font-weight:600; color:var(--mute); cursor:pointer; white-space:nowrap; }
+  .chip-ex.sel{ border-color:var(--neon); color:var(--neon); background:var(--neon-dim); }
+  .strength-card{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; }
 
   /* ---------- PROGRESS ---------- */
   .chart{ display:flex; align-items:flex-end; justify-content:space-between; height:150px; margin-top:14px; padding:0 4px 14px; border-bottom:1px solid var(--line); }
@@ -460,12 +473,14 @@
     <div class="view hidden" id="view-train" style="display:none;">
       <div class="brandrow"><div class="wordmark"><svg class="logo" viewBox="0 0 24 24" fill="none"><path d="M4 20L12 4L20 20M8 13H16" stroke="var(--neon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>ATLAS</div></div>
       <div class="headrow">
-        <div class="h1">Treino<span class="sub">Monte sua sessão de hoje</span></div>
+        <div class="h1"><span id="routineTitle">Treino livre</span><span class="sub" id="routineSub">Monte sua sessão de hoje</span></div>
         <button class="sessiontimer" id="sessionBtn" onclick="toggleSession()" aria-label="Iniciar ou pausar treino">
           <span id="sessionIcon" class="sessionicon"></span>
           <span id="sessionTime">Iniciar</span>
         </button>
       </div>
+
+      <button class="addex" style="margin-bottom:14px;" onclick="openRoutineSheet()">📋 Rotinas salvas</button>
 
       <div id="exList"></div>
 
@@ -493,6 +508,10 @@
 
       <div class="eyebrow" style="margin-top:28px;">RECORDES PESSOAIS</div>
       <div id="recordsList"></div>
+
+      <div class="eyebrow" style="margin-top:28px;">FORÇA POR EXERCÍCIO</div>
+      <div class="qa-scroll" id="strengthChips" style="margin-bottom:14px;"></div>
+      <div id="strengthSvgWrap"></div>
     </div>
 
     <!-- ===================== PROFILE ===================== -->
@@ -507,6 +526,18 @@
         <div class="prow"><span>Sincronização</span><span class="pv">iCloud</span></div>
         <div class="prow"><span>Sobre o Atlas</span><span class="pv">v2.0</span></div>
       </div>
+
+      <div class="eyebrow" style="margin-top:26px;">DADOS</div>
+      <div class="plist">
+        <div class="prow tapable" style="cursor:pointer;" onclick="exportAtlasData()">
+          <span>Exportar backup</span><span class="pv">↓ .json</span>
+        </div>
+        <div class="prow tapable" style="cursor:pointer;" onclick="document.getElementById('importFile').click()">
+          <span>Importar backup</span><span class="pv">↑ .json</span>
+        </div>
+      </div>
+      <div class="emptystate-sub" style="margin-top:10px; text-align:left;">Tudo fica salvo só neste navegador. Exporte de vez em quando pra não perder nada se limpar os dados do Safari.</div>
+      <input type="file" id="importFile" accept="application/json" style="display:none;" onchange="importAtlasData(event)">
     </div>
 
     <!-- ===================== REST SHEET ===================== -->
@@ -526,6 +557,23 @@
         <button class="rest-adj" onclick="adjustRest(-15)">−15s</button>
         <button class="rest-adj" onclick="adjustRest(15)">+15s</button>
         <button class="rest-skip" onclick="skipRest()">Pular descanso</button>
+      </div>
+    </div>
+
+    <!-- ===================== ROTINAS SALVAS ===================== -->
+    <div class="restsheet tall" id="routineSheet">
+      <div class="restsheet-top">
+        <span class="restsheet-label">Rotinas salvas</span>
+        <button class="restsheet-close" onclick="closeRoutineSheet()" aria-label="Fechar">✕</button>
+      </div>
+      <div id="routineListBox"></div>
+      <div class="rule"></div>
+      <div id="saveRoutineRow">
+        <button class="addex" onclick="showSaveRoutineInput()" id="saveRoutineBtn">+ Salvar treino atual como rotina</button>
+        <div class="exsearch" id="saveRoutineInputBox">
+          <input type="text" id="routineNameInput" placeholder="Nome da rotina — ex. Empurrar A" autocomplete="off">
+          <button class="finishbar" style="margin-top:10px;" onclick="confirmSaveRoutine()">Salvar rotina</button>
+        </div>
       </div>
     </div>
 
@@ -695,6 +743,15 @@
   function loadRecords(){ try{ return JSON.parse(localStorage.getItem('atlas_records') || '{}'); }catch(e){ return {}; } }
   function saveRecords(){ try{ localStorage.setItem('atlas_records', JSON.stringify(records)); }catch(e){} }
   let records = loadRecords();
+
+  // ---------- última performance por exercício ----------
+  function loadLastPerf(){ try{ return JSON.parse(localStorage.getItem('atlas_lastperf') || '{}'); }catch(e){ return {}; } }
+  function saveLastPerf(){ try{ localStorage.setItem('atlas_lastperf', JSON.stringify(lastPerf)); }catch(e){} }
+  let lastPerf = loadLastPerf();
+  function recordLastPerf(name, kg, reps){
+    lastPerf[name] = { kg, reps, date:new Date().toISOString() };
+    saveLastPerf();
+  }
   function checkPR(name, kg, reps){
     if(!kg || kg <= 0) return false;
     const cur = records[name];
@@ -768,12 +825,79 @@
     });
   }
 
+  // ---------- força por exercício (a partir do histórico real) ----------
+  function getTrackedExerciseNames(){
+    const set = new Set();
+    history.forEach(h => (h.exercises||[]).forEach(e=>{ if(e.sets && e.sets.some(s=>s.kg>0)) set.add(e.name); }));
+    return Array.from(set);
+  }
+  function getStrengthSeries(name){
+    const points = [];
+    history.slice().reverse().forEach(h=>{
+      const ex = (h.exercises||[]).find(e=>e.name===name);
+      if(ex && ex.sets && ex.sets.length){
+        const maxKg = Math.max(...ex.sets.map(s=>s.kg||0));
+        if(maxKg>0) points.push({ date:h.date, kg:maxKg });
+      }
+    });
+    return points;
+  }
+  function renderStrengthChart(name){
+    const points = getStrengthSeries(name);
+    const wrap = document.getElementById('strengthSvgWrap');
+    if(points.length < 2){
+      wrap.innerHTML = `<div class="strength-card"><div class="emptystate-sub" style="text-align:left; margin:0;">Precisa de pelo menos 2 sessões registradas de "${name}" pra desenhar a curva. Você já tem ${points.length}.</div></div>`;
+      return;
+    }
+    const w = 294, h = 130, pad = 18;
+    const kgs = points.map(p=>p.kg);
+    const maxKg = Math.max(...kgs), minKg = Math.min(...kgs);
+    const range = Math.max(maxKg - minKg, 1);
+    const stepX = (w - pad*2) / (points.length - 1);
+    const coords = points.map((p,i)=>{
+      const x = pad + i*stepX;
+      const y = h - pad - ((p.kg - minKg)/range) * (h - pad*2);
+      return [x, y];
+    });
+    const path = coords.map((c,i)=> (i===0?'M':'L') + c[0].toFixed(1) + ',' + c[1].toFixed(1)).join(' ');
+    const dots = coords.map(c=>`<circle cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="3.5" fill="#33E39A"/>`).join('');
+    wrap.innerHTML = `
+      <div class="strength-card">
+        <svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}">
+          <path d="${path}" fill="none" stroke="#33E39A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 4px rgba(51,227,154,0.5))"/>
+          ${dots}
+        </svg>
+        <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10.5px; color:var(--mute);">
+          <span>Mín. ${minKg}kg</span><span>Máx. ${maxKg}kg</span>
+        </div>
+      </div>`;
+  }
+  function renderStrengthChips(){
+    const names = getTrackedExerciseNames();
+    const box = document.getElementById('strengthChips');
+    if(!names.length){
+      box.innerHTML = '';
+      document.getElementById('strengthSvgWrap').innerHTML = `<div class="strength-card"><div class="emptystate-sub" style="text-align:left; margin:0;">Registre pelo menos 2 treinos com o mesmo exercício pra ver a evolução de carga aqui.</div></div>`;
+      return;
+    }
+    box.innerHTML = names.map((n,i)=>`<div class="chip-ex ${i===0?'sel':''}" data-name="${n}">${n}</div>`).join('');
+    box.querySelectorAll('.chip-ex').forEach(c=>{
+      c.addEventListener('click', ()=>{
+        box.querySelectorAll('.chip-ex').forEach(x=>x.classList.remove('sel'));
+        c.classList.add('sel');
+        renderStrengthChart(c.dataset.name);
+      });
+    });
+    renderStrengthChart(names[0]);
+  }
+
   loadProgress();
   checkWeekReset();
   renderHomeArc();
   updateHomeStats();
   renderHistory();
   renderRecords();
+  renderStrengthChips();
 
   // ---------- onboarding ----------
   const REST_BY_GOAL = { hipertrofia:90, forca:150, emagrecimento:45, saude:60 };
@@ -973,6 +1097,120 @@
   let workout = [];
   loadWorkoutDraft();
 
+  // ---------- backup: exportar / importar tudo ----------
+  const ATLAS_KEYS = ['atlas_state','atlas_weekStart','atlas_workout','atlas_records','atlas_history','atlas_routines','atlas_lastperf','atlas_onboarded','atlas_activeRoutine'];
+  function exportAtlasData(){
+    const dump = { _app:'ATLAS', _exportedAt:new Date().toISOString() };
+    ATLAS_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v!==null) dump[k] = v; });
+    const blob = new Blob([JSON.stringify(dump, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `atlas-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  function importAtlasData(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const data = JSON.parse(reader.result);
+        if(data._app !== 'ATLAS') throw new Error('arquivo não reconhecido');
+        ATLAS_KEYS.forEach(k=>{ if(data[k] !== undefined) localStorage.setItem(k, data[k]); });
+        alert('Backup importado. O app vai recarregar.');
+        location.reload();
+      }catch(err){
+        alert('Não foi possível importar esse arquivo — confira se é um backup do ATLAS.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+
+  // ---------- rotinas salvas ----------
+  function loadRoutines(){ try{ return JSON.parse(localStorage.getItem('atlas_routines') || '[]'); }catch(e){ return []; } }
+  function saveRoutinesList(){ try{ localStorage.setItem('atlas_routines', JSON.stringify(routines)); }catch(e){} }
+  let routines = loadRoutines();
+  let activeRoutineName = localStorage.getItem('atlas_activeRoutine') || '';
+  if(activeRoutineName){ document.getElementById('routineTitle').textContent = activeRoutineName; document.getElementById('routineSub').textContent = 'Rotina salva'; }
+
+  function openRoutineSheet(){ renderRoutineList(); document.getElementById('routineSheet').classList.add('show'); }
+  function closeRoutineSheet(){
+    document.getElementById('routineSheet').classList.remove('show');
+    document.getElementById('saveRoutineInputBox').classList.remove('open');
+    document.getElementById('saveRoutineBtn').style.display = 'block';
+  }
+  function renderRoutineList(){
+    const box = document.getElementById('routineListBox');
+    if(!routines.length){ box.innerHTML = `<div class="exempty">Nenhuma rotina salva ainda. Monte um treino e salve como rotina abaixo.</div>`; return; }
+    box.innerHTML = routines.map((r,i)=>`
+      <div class="routine-item">
+        <div class="routine-info">
+          <div class="routine-badge">${r.exercises.length}x</div>
+          <div style="min-width:0;">
+            <div class="routine-name">${r.name}</div>
+            <div class="routine-meta">${r.exercises.length} exercício${r.exercises.length===1?'':'s'}</div>
+          </div>
+        </div>
+        <div class="routine-actions">
+          <button class="routine-start" data-startroutine="${i}">Iniciar</button>
+          <button class="exremove" data-delroutine="${i}" aria-label="Excluir rotina"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        </div>
+      </div>
+    `).join('');
+    box.querySelectorAll('[data-startroutine]').forEach(btn=>{
+      btn.addEventListener('click', ()=> startRoutine(+btn.dataset.startroutine));
+    });
+    box.querySelectorAll('[data-delroutine]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        routines.splice(+btn.dataset.delroutine, 1);
+        saveRoutinesList();
+        renderRoutineList();
+      });
+    });
+  }
+  function startRoutine(idx){
+    const r = routines[idx];
+    if(!r) return;
+    activeRoutineName = r.name;
+    localStorage.setItem('atlas_activeRoutine', activeRoutineName);
+    workout = r.exercises.map(e=>{
+      const lp = lastPerf[e.name];
+      return {
+        name:e.name, meta:e.meta, code:e.code, img:e.img, rest:e.rest,
+        sets: e.sets.map(s=>({ kg: lp?lp.kg:s.kg, reps: lp?lp.reps:s.reps, done:false }))
+      };
+    });
+    document.getElementById('routineTitle').textContent = r.name;
+    document.getElementById('routineSub').textContent = 'Rotina salva';
+    renderExercises();
+    closeRoutineSheet();
+  }
+  function showSaveRoutineInput(){
+    document.getElementById('saveRoutineInputBox').classList.add('open');
+    document.getElementById('saveRoutineBtn').style.display = 'none';
+    document.getElementById('routineNameInput').focus();
+  }
+  function confirmSaveRoutine(){
+    const name = document.getElementById('routineNameInput').value.trim();
+    if(!name || !workout.length) return;
+    routines.push({
+      name,
+      exercises: workout.map(e=>({ name:e.name, meta:e.meta, code:e.code, img:e.img, rest:e.rest, sets: e.sets.map(s=>({kg:s.kg, reps:s.reps})) }))
+    });
+    saveRoutinesList();
+    activeRoutineName = name;
+    localStorage.setItem('atlas_activeRoutine', name);
+    document.getElementById('routineTitle').textContent = name;
+    document.getElementById('routineSub').textContent = 'Rotina salva';
+    document.getElementById('routineNameInput').value = '';
+    closeRoutineSheet();
+    renderRoutineList();
+  }
+
+
   function renderExercises(){
     saveWorkoutDraft();
     const list = document.getElementById('exList');
@@ -991,6 +1229,7 @@
           <div style="flex:1; min-width:0;">
             <div class="exname">${ex.name}</div>
             <div class="exmeta">${ex.meta}</div>
+            ${lastPerf[ex.name] ? `<div class="exlast">Última vez: ${lastPerf[ex.name].kg}kg × ${lastPerf[ex.name].reps}</div>` : ''}
           </div>
           <div class="excontrols">
             <button class="restpill" data-restex="${exi}" title="Toque para mudar o tempo de descanso">
@@ -1088,6 +1327,7 @@
         saveWorkoutDraft();
         if(nowDone){
           haptic(12);
+          recordLastPerf(workout[ex].name, s.kg, s.reps);
           const isPR = checkPR(workout[ex].name, s.kg, s.reps);
           if(isPR) showPRToast(workout[ex].name, s.kg);
           startRest(workout[ex].rest || 90, workout[ex].name);
@@ -1140,7 +1380,8 @@
     box.querySelectorAll('.exresult').forEach((el,i)=>{
       el.addEventListener('click', ()=>{
         const m = matches[i];
-        workout.push({ name:m.name, meta:m.meta, code:m.code, img:m.img, rest:DEFAULT_REST, sets:[{kg:20, reps:10, done:false}] });
+        const lp = lastPerf[m.name];
+        workout.push({ name:m.name, meta:m.meta, code:m.code, img:m.img, rest:DEFAULT_REST, sets:[{kg: lp?lp.kg:20, reps: lp?lp.reps:10, done:false}] });
         renderExercises();
         toggleSearch();
         document.getElementById('exSearchInput').value = '';
@@ -1205,7 +1446,7 @@
     const stats = calcSessionStats();
     history.unshift({
       date: new Date().toISOString(),
-      exercises: workout.map(e=>e.name),
+      exercises: workout.map(e=>({ name:e.name, sets: e.sets.filter(s=>s.done).map(s=>({kg:s.kg, reps:s.reps})) })),
       totalVolume: stats.totalVolume,
       totalSets: stats.totalSets,
       minutes: stats.minutes
@@ -1213,6 +1454,7 @@
     saveHistoryList();
     renderHistory();
     renderChartFromHistory();
+    renderStrengthChips();
 
     const wasBelowGoal = weekCount < WEEKLY_GOAL;
     weekCount = Math.min(weekCount + 1, WEEKLY_GOAL);
@@ -1226,6 +1468,10 @@
     resetSession();
 
     workout = [];
+    activeRoutineName = '';
+    localStorage.removeItem('atlas_activeRoutine');
+    document.getElementById('routineTitle').textContent = 'Treino livre';
+    document.getElementById('routineSub').textContent = 'Monte sua sessão de hoje';
     renderExercises();
   }
 
