@@ -32,6 +32,13 @@
       <div class="auth-error" id="authError"></div>
       <button class="ob-next" id="authSubmitBtn" onclick="handleAuthSubmit()" style="margin-top:16px;">Entrar</button>
       <button class="auth-toggle" id="authToggle" onclick="toggleAuthMode()">Não tem conta? Criar uma</button>
+      <button class="auth-toggle" id="authForgot" onclick="handleForgotPassword()" style="margin-top:0;">Esqueci minha senha</button>
+    </div>
+    <div class="auth-form" id="resetForm" style="display:none;">
+      <div class="ob-sub" style="margin-bottom:14px;">Defina sua nova senha.</div>
+      <input class="ob-input" id="newPassword" type="password" placeholder="Nova senha" autocomplete="new-password">
+      <div class="auth-error" id="resetError"></div>
+      <button class="ob-next" id="resetSubmitBtn" onclick="handleSetNewPassword()" style="margin-top:16px;">Salvar nova senha</button>
     </div>
     <div class="ob-spacer"></div>
   </div>
@@ -269,6 +276,15 @@
           <button class="finishbar" style="margin-top:10px;" onclick="confirmSaveRoutine()">Salvar rotina</button>
         </div>
       </div>
+    </div>
+
+    <!-- ===================== BARRA DE CARREGAMENTO (fina, não bloqueia) ===================== -->
+    <div class="loadbar" id="loadBar"><div class="loadbar-fill"></div></div>
+
+    <!-- ===================== TOAST DE ERRO ===================== -->
+    <div class="errtoast" id="errToast">
+      <div class="et-icon">⚠️</div>
+      <div class="et-text" id="etText">Não foi possível salvar.</div>
     </div>
 
     <!-- ===================== TOAST DE RECORDE ===================== -->
