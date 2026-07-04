@@ -21,6 +21,21 @@
 <div class="device">
   <div class="notch"></div>
 
+  <div class="authscreen" id="authScreen">
+    <div class="ob-spacer"></div>
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M4 20L12 4L20 20M8 13H16" stroke="var(--neon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="ob-title" id="authTitle">Entrar</div>
+    <div class="ob-sub">Sua conta ATLAS — os dados ficam salvos na nuvem e sincronizam entre dispositivos.</div>
+    <div class="auth-form">
+      <input class="ob-input" id="authEmail" type="email" placeholder="Email" autocomplete="email">
+      <input class="ob-input" id="authPassword" type="password" placeholder="Senha" autocomplete="current-password" style="margin-top:10px;">
+      <div class="auth-error" id="authError"></div>
+      <button class="ob-next" id="authSubmitBtn" onclick="handleAuthSubmit()" style="margin-top:16px;">Entrar</button>
+      <button class="auth-toggle" id="authToggle" onclick="toggleAuthMode()">Não tem conta? Criar uma</button>
+    </div>
+    <div class="ob-spacer"></div>
+  </div>
+
   <div class="onboard" id="onboard">
     <div class="ob-dots" id="obDots"></div>
 
@@ -210,17 +225,13 @@
         <div class="prow"><span>Sobre o Atlas</span><span class="pv">v2.0</span></div>
       </div>
 
-      <div class="eyebrow" style="margin-top:26px;">DADOS</div>
+      <div class="eyebrow" style="margin-top:26px;">CONTA</div>
       <div class="plist">
-        <div class="prow tapable" style="cursor:pointer;" onclick="exportAtlasData()">
-          <span>Exportar backup</span><span class="pv">↓ .json</span>
-        </div>
-        <div class="prow tapable" style="cursor:pointer;" onclick="document.getElementById('importFile').click()">
-          <span>Importar backup</span><span class="pv">↑ .json</span>
+        <div class="prow"><span>Dados</span><span class="pv">Sincronizados na nuvem</span></div>
+        <div class="prow tapable" style="cursor:pointer;" onclick="handleSignOut()">
+          <span>Sair da conta</span><span class="pv">↩</span>
         </div>
       </div>
-      <div class="emptystate-sub" style="margin-top:10px; text-align:left;">Tudo fica salvo só neste navegador. Exporte de vez em quando pra não perder nada se limpar os dados do Safari.</div>
-      <input type="file" id="importFile" accept="application/json" style="display:none;" onchange="importAtlasData(event)">
     </div>
 
     <!-- ===================== REST SHEET ===================== -->
@@ -319,6 +330,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 </body>
 </html>
