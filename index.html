@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0A120E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ATLAS">
+<meta name="mobile-web-app-capable" content="yes">
 <title>ATLAS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Gabarito:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -214,6 +221,23 @@
   .pr-item .prd{ font-size:11px; color:var(--mute); margin-top:3px; }
   .pr-item .prv{ font-family:'Gabarito'; font-weight:800; font-size:20px; color:var(--neon); }
   .pr-item .prv span{ font-size:11px; font-weight:600; color:var(--mute); }
+  .hist-item{ display:flex; align-items:center; justify-content:space-between; padding:14px 4px; border-top:1px solid var(--line); }
+  .hist-item:first-of-type{ border-top:0; }
+  .hist-item .hn{ font-family:'Gabarito'; font-weight:700; font-size:13.5px; }
+  .hist-item .hd{ font-size:10.5px; color:var(--mute); margin-top:3px; }
+  .hist-item .hv{ font-family:'Gabarito'; font-weight:800; font-size:15px; color:var(--ink); text-align:right; }
+  .hist-item .hv span{ display:block; font-size:9.5px; font-weight:600; color:var(--mute); margin-top:2px; }
+
+  .prtoast{
+    position:fixed; top:calc(20px + var(--sat)); left:20px; right:20px; z-index:400;
+    background:var(--card); border:1px solid var(--neon); border-radius:16px; padding:13px 16px;
+    display:flex; align-items:center; gap:10px; transform:translateY(-120%); opacity:0;
+    transition:transform .4s cubic-bezier(.22,1,.36,1), opacity .3s ease; box-shadow:0 12px 30px -10px rgba(0,0,0,0.5);
+  }
+  .prtoast.show{ transform:translateY(0); opacity:1; }
+  .prtoast .pt-icon{ font-size:18px; }
+  .prtoast .pt-title{ font-family:'Gabarito'; font-weight:800; font-size:13.5px; }
+  .prtoast .pt-sub{ font-size:11px; color:var(--mute); }
 
   /* ---------- PROFILE ---------- */
   .plist .prow{ display:flex; align-items:center; justify-content:space-between; padding:15px 4px; border-top:1px solid var(--line); font-size:14px; min-height:44px; }
@@ -462,13 +486,13 @@
       <div class="h1" style="padding:4px 4px 16px;">Progresso<span class="sub">Volume total, últimos 7 dias</span></div>
 
       <div class="chart" id="chart"></div>
-      <div class="emptystate-sub" style="margin-top:10px; text-align:left;">Sem dados ainda — a curva aparece a partir do seu primeiro treino registrado.</div>
+      <div class="emptystate-sub" id="chartEmptyMsg" style="margin-top:10px; text-align:left;">Sem dados ainda — a curva aparece a partir do seu primeiro treino registrado.</div>
+
+      <div class="eyebrow" style="margin-top:28px;">HISTÓRICO</div>
+      <div id="historyList"></div>
 
       <div class="eyebrow" style="margin-top:28px;">RECORDES PESSOAIS</div>
-      <div class="emptystate" style="padding:30px 4px;">
-        <div class="emptystate-title">Nenhum recorde ainda.</div>
-        <div class="emptystate-sub">Quando você bater um recorde numa série, ele aparece aqui automaticamente.</div>
-      </div>
+      <div id="recordsList"></div>
     </div>
 
     <!-- ===================== PROFILE ===================== -->
@@ -502,6 +526,15 @@
         <button class="rest-adj" onclick="adjustRest(-15)">−15s</button>
         <button class="rest-adj" onclick="adjustRest(15)">+15s</button>
         <button class="rest-skip" onclick="skipRest()">Pular descanso</button>
+      </div>
+    </div>
+
+    <!-- ===================== TOAST DE RECORDE ===================== -->
+    <div class="prtoast" id="prToast">
+      <div class="pt-icon">🏆</div>
+      <div>
+        <div class="pt-title" id="ptTitle">Novo recorde</div>
+        <div class="pt-sub" id="ptSub"></div>
       </div>
     </div>
 
@@ -651,10 +684,96 @@
       saveProgress();
     }
   }
+  // ---------- haptics (Vibration API — não suportada no Safari/iOS por decisão da Apple) ----------
+  function haptic(pattern){ try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){} }
+
+  // ---------- rascunho do treino em andamento ----------
+  function saveWorkoutDraft(){ try{ localStorage.setItem('atlas_workout', JSON.stringify(workout)); }catch(e){} }
+  function loadWorkoutDraft(){ try{ const raw = localStorage.getItem('atlas_workout'); if(raw){ const arr = JSON.parse(raw); if(Array.isArray(arr)) workout = arr; } }catch(e){} }
+
+  // ---------- recordes pessoais ----------
+  function loadRecords(){ try{ return JSON.parse(localStorage.getItem('atlas_records') || '{}'); }catch(e){ return {}; } }
+  function saveRecords(){ try{ localStorage.setItem('atlas_records', JSON.stringify(records)); }catch(e){} }
+  let records = loadRecords();
+  function checkPR(name, kg, reps){
+    if(!kg || kg <= 0) return false;
+    const cur = records[name];
+    if(!cur || kg > cur.weight){
+      records[name] = { weight:kg, reps:reps, date:new Date().toISOString() };
+      saveRecords();
+      return true;
+    }
+    return false;
+  }
+  function showPRToast(name, kg){
+    document.getElementById('ptSub').textContent = `${name} — ${kg}kg`;
+    const t = document.getElementById('prToast');
+    t.classList.add('show');
+    haptic([15,40,15]);
+    setTimeout(()=> t.classList.remove('show'), 2600);
+  }
+  function renderRecords(){
+    const box = document.getElementById('recordsList');
+    const entries = Object.entries(records).sort((a,b)=> new Date(b[1].date) - new Date(a[1].date));
+    if(!entries.length){
+      box.innerHTML = `<div class="emptystate" style="padding:26px 4px; text-align:left;"><div class="emptystate-title">Nenhum recorde ainda.</div><div class="emptystate-sub">Quando você bater um recorde numa série, ele aparece aqui automaticamente.</div></div>`;
+      return;
+    }
+    const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    box.innerHTML = entries.slice(0,12).map(([name,r])=>{
+      const d = new Date(r.date);
+      return `<div class="pr-item"><div><div class="exn">${name}</div><div class="prd">${d.getDate()} de ${months[d.getMonth()]}</div></div><div class="prv">${r.weight}<span>kg × ${r.reps}</span></div></div>`;
+    }).join('');
+  }
+
+  // ---------- histórico de treinos ----------
+  function loadHistory(){ try{ return JSON.parse(localStorage.getItem('atlas_history') || '[]'); }catch(e){ return []; } }
+  function saveHistoryList(){ try{ localStorage.setItem('atlas_history', JSON.stringify(history)); }catch(e){} }
+  let history = loadHistory();
+  function renderHistory(){
+    const box = document.getElementById('historyList');
+    if(!history.length){
+      box.innerHTML = `<div class="emptystate" style="padding:26px 4px; text-align:left;"><div class="emptystate-title">Nenhum treino registrado ainda.</div><div class="emptystate-sub">Toda sessão concluída aparece aqui, com data, volume e duração.</div></div>`;
+      return;
+    }
+    const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    box.innerHTML = history.slice(0,15).map(h=>{
+      const d = new Date(h.date);
+      return `<div class="hist-item"><div><div class="hn">${h.exercises.length} exercício${h.exercises.length===1?'':'s'}</div><div class="hd">${d.getDate()} de ${months[d.getMonth()]} · ${h.minutes}min</div></div><div class="hv">${h.totalVolume.toLocaleString('pt-BR')}<span>kg total</span></div></div>`;
+    }).join('');
+  }
+  function renderChartFromHistory(){
+    const days = ['D','S','T','Q','Q','S','S'];
+    const today = new Date(); today.setHours(0,0,0,0);
+    const buckets = Array.from({length:7}).map((_,i)=>{
+      const d = new Date(today); d.setDate(d.getDate() - (6-i));
+      return { label: days[d.getDay()], date: d.toISOString().slice(0,10), v: 0 };
+    });
+    history.forEach(h=>{
+      const key = h.date.slice(0,10);
+      const b = buckets.find(x=>x.date === key);
+      if(b) b.v += h.totalVolume;
+    });
+    const hasData = buckets.some(b=>b.v>0);
+    document.getElementById('chartEmptyMsg').style.display = hasData ? 'none' : 'block';
+    const chart = document.getElementById('chart');
+    chart.innerHTML = '';
+    const max = Math.max(...buckets.map(b=>b.v), 1);
+    buckets.forEach((b,i)=>{
+      const col = document.createElement('div');
+      col.className = 'bar-col' + (i===buckets.length-1 ? ' today' : '');
+      col.innerHTML = `<div class="bar" style="height:110px;"><div class="fill"></div></div><div class="bar-day">${b.label}</div>`;
+      chart.appendChild(col);
+      setTimeout(()=>{ col.querySelector('.fill').style.height = (b.v/max*100)+'%'; }, 200+i*80);
+    });
+  }
+
   loadProgress();
   checkWeekReset();
   renderHomeArc();
   updateHomeStats();
+  renderHistory();
+  renderRecords();
 
   // ---------- onboarding ----------
   const REST_BY_GOAL = { hipertrofia:90, forca:150, emagrecimento:45, saude:60 };
@@ -799,7 +918,7 @@
   }
   function tickRest(advance){
     if(advance === undefined) advance = true;
-    if(restSeconds<=0){ endRest(); return; }
+    if(restSeconds<=0){ haptic([20,50,20]); endRest(); return; }
     const m = Math.floor(restSeconds/60).toString().padStart(2,'0');
     const s = (restSeconds%60).toString().padStart(2,'0');
     document.getElementById('rtTime').textContent = `${m}:${s}`;
@@ -852,8 +971,10 @@
 
   // ---------- workout state (em branco) ----------
   let workout = [];
+  loadWorkoutDraft();
 
   function renderExercises(){
+    saveWorkoutDraft();
     const list = document.getElementById('exList');
     list.innerHTML = '';
     if(!workout.length){
@@ -937,6 +1058,7 @@
         row.style.transition = 'transform .28s cubic-bezier(.22,1,.36,1)';
         if(isHorizontal && dx < -THRESHOLD){
           row.style.transform = 'translateX(-100%)';
+          haptic(15);
           const wrap = row.closest('.srow-wrap');
           wrap.style.transition = 'max-height .25s ease .1s, opacity .25s ease .1s, margin .25s ease .1s';
           wrap.style.maxHeight = wrap.offsetHeight + 'px';
@@ -959,10 +1081,17 @@
       row.addEventListener('click', ()=>{
         if(suppressRowClick) return;
         const {ex, set} = row.dataset;
-        const nowDone = !workout[ex].sets[set].done;
-        workout[ex].sets[set].done = nowDone;
+        const s = workout[ex].sets[set];
+        const nowDone = !s.done;
+        s.done = nowDone;
         row.classList.toggle('done', nowDone);
-        if(nowDone) startRest(workout[ex].rest || 90, workout[ex].name);
+        saveWorkoutDraft();
+        if(nowDone){
+          haptic(12);
+          const isPR = checkPR(workout[ex].name, s.kg, s.reps);
+          if(isPR) showPRToast(workout[ex].name, s.kg);
+          startRest(workout[ex].rest || 90, workout[ex].name);
+        }
       });
     });
     list.querySelectorAll('.sval').forEach(c=>{
@@ -1066,29 +1195,42 @@
   function closeCelebration(){ document.getElementById('celebrate').classList.remove('show'); }
 
   function finishWorkout(){
+    if(!workout.length){
+      const bar = document.querySelector('.finishbar');
+      bar.textContent = 'Adicione um exercício primeiro';
+      setTimeout(()=>{ bar.textContent = 'Concluir treino'; }, 1600);
+      return;
+    }
     endRest();
+    const stats = calcSessionStats();
+    history.unshift({
+      date: new Date().toISOString(),
+      exercises: workout.map(e=>e.name),
+      totalVolume: stats.totalVolume,
+      totalSets: stats.totalSets,
+      minutes: stats.minutes
+    });
+    saveHistoryList();
+    renderHistory();
+    renderChartFromHistory();
+
     const wasBelowGoal = weekCount < WEEKLY_GOAL;
     weekCount = Math.min(weekCount + 1, WEEKLY_GOAL);
     streakDays++;
     const goalJustReached = wasBelowGoal && weekCount === WEEKLY_GOAL;
+    haptic(goalJustReached ? [10,30,10,30,80] : [10,30,10]);
     showCelebration(goalJustReached);
     saveProgress();
     renderHomeArc();
     updateHomeStats();
     resetSession();
+
+    workout = [];
+    renderExercises();
   }
 
-  // ---------- progress chart ----------
-  const week = [ {d:'S', v:0}, {d:'T', v:0}, {d:'Q', v:0}, {d:'Q', v:0}, {d:'S', v:0}, {d:'S', v:0}, {d:'D', v:0} ];
-  const chart = document.getElementById('chart');
-  const max = Math.max(...week.map(w=>w.v), 1);
-  week.forEach((w, i)=>{
-    const col = document.createElement('div');
-    col.className = 'bar-col' + (i===week.length-1 ? ' today' : '');
-    col.innerHTML = `<div class="bar" style="height:110px;"><div class="fill"></div></div><div class="bar-day">${w.d}</div>`;
-    chart.appendChild(col);
-    setTimeout(()=>{ col.querySelector('.fill').style.height = (w.v/max*100)+'%'; }, 200+i*80);
-  });
+  // ---------- progress chart: renderizado a partir do histórico real ----------
+  renderChartFromHistory();
 </script>
 </body>
 </html>
