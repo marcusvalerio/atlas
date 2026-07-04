@@ -1,26 +1,9 @@
-// ---------- versionamento do schema de dados (localStorage) ----------
-  const SCHEMA_VERSION = 1;
-  function runMigrations(){
-    const stored = parseInt(localStorage.getItem('atlas_schema_version') || '0', 10);
-    if(stored >= SCHEMA_VERSION) return;
-    try{
-      // v0 -> v1: normaliza entradas antigas de histórico onde 'exercises' era um array de nomes (string),
-      // em vez do formato atual com séries detalhadas — evita quebrar o gráfico de força com dados antigos.
-      const raw = localStorage.getItem('atlas_history');
-      if(raw){
-        const hist = JSON.parse(raw);
-        const fixed = hist.map(h=>{
-          if(Array.isArray(h.exercises) && h.exercises.length && typeof h.exercises[0] === 'string'){
-            return { ...h, exercises: h.exercises.map(name=>({ name, sets:[] })) };
-          }
-          return h;
-        });
-        localStorage.setItem('atlas_history', JSON.stringify(fixed));
-      }
-    }catch(e){ /* se a migração falhar, segue sem travar o app */ }
-    localStorage.setItem('atlas_schema_version', String(SCHEMA_VERSION));
-  }
-  runMigrations();
+// ---------- Supabase: cliente e sessão ----------
+  const SUPABASE_URL = 'https://byqeownckckbxbfctkde.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_tpWCM84h98HsM4lRG53pyg_cXHNzxHg';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let currentUser = null;
+  let weekStartDB = null;
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -59,23 +42,25 @@
   let userName = '';
   let userGoal = 'hipertrofia';
 
-  function loadProgress(){
-    try{
-      const raw = localStorage.getItem('atlas_state');
-      if(raw){
-        const s = JSON.parse(raw);
-        WEEKLY_GOAL = s.weeklyGoal || 5;
-        weekCount = s.weekCount || 0;
-        streakDays = s.streakDays || 0;
-        userName = s.name || '';
-        userGoal = s.goal || 'hipertrofia';
-      }
-    }catch(e){}
+  async function loadProgressCloud(){
+    const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+    if(data){
+      WEEKLY_GOAL = data.weekly_goal || 5;
+      weekCount = data.week_count || 0;
+      streakDays = data.streak_days || 0;
+      userName = data.name || '';
+      userGoal = data.goal || 'hipertrofia';
+      weekStartDB = data.week_start;
+      return true;
+    }
+    return false;
   }
   function saveProgress(){
-    try{
-      localStorage.setItem('atlas_state', JSON.stringify({ weeklyGoal: WEEKLY_GOAL, weekCount, streakDays, name: userName, goal: userGoal }));
-    }catch(e){}
+    if(!currentUser) return;
+    sb.from('profiles').upsert({
+      id: currentUser.id, name: userName, weekly_goal: WEEKLY_GOAL, goal: userGoal,
+      week_count: weekCount, streak_days: streakDays, week_start: weekStartDB, updated_at: new Date().toISOString()
+    }).then(({error})=>{ if(error) console.error('saveProgress', error); });
   }
   function renderHomeArc(){
     renderArc('homeArc', Math.min(weekCount / WEEKLY_GOAL, 1), '#33E39A');
@@ -110,10 +95,9 @@
   }
   function checkWeekReset(){
     const monday = getMonday(new Date());
-    const stored = localStorage.getItem('atlas_weekStart');
-    if(stored !== monday){
+    if(weekStartDB !== monday){
       weekCount = 0;
-      localStorage.setItem('atlas_weekStart', monday);
+      weekStartDB = monday;
       saveProgress();
     }
   }
@@ -121,28 +105,52 @@
   function haptic(pattern){ try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){} }
 
   // ---------- rascunho do treino em andamento ----------
-  function saveWorkoutDraft(){ try{ localStorage.setItem('atlas_workout', JSON.stringify(workout)); }catch(e){} }
-  function loadWorkoutDraft(){ try{ const raw = localStorage.getItem('atlas_workout'); if(raw){ const arr = JSON.parse(raw); if(Array.isArray(arr)) workout = arr; } }catch(e){} }
+  function saveWorkoutDraft(){
+    if(!currentUser) return;
+    sb.from('workout_draft').upsert({
+      user_id: currentUser.id, routine_name: activeRoutineName || null, exercises: workout, updated_at: new Date().toISOString()
+    }).then(({error})=>{ if(error) console.error('saveWorkoutDraft', error); });
+  }
+  async function loadWorkoutDraftCloud(){
+    const { data } = await sb.from('workout_draft').select('*').eq('user_id', currentUser.id).maybeSingle();
+    if(data){ workout = data.exercises || []; activeRoutineName = data.routine_name || ''; }
+  }
 
   // ---------- recordes pessoais ----------
-  function loadRecords(){ try{ return JSON.parse(localStorage.getItem('atlas_records') || '{}'); }catch(e){ return {}; } }
-  function saveRecords(){ try{ localStorage.setItem('atlas_records', JSON.stringify(records)); }catch(e){} }
-  let records = loadRecords();
+  async function loadRecordsCloud(){
+    const { data } = await sb.from('records').select('*').eq('user_id', currentUser.id);
+    records = {};
+    (data||[]).forEach(r=>{ records[r.exercise_name] = { weight:Number(r.weight), reps:r.reps, date:r.date }; });
+  }
+  function saveRecordRow(name){
+    if(!currentUser) return;
+    const r = records[name];
+    sb.from('records').upsert({ user_id: currentUser.id, exercise_name:name, weight:r.weight, reps:r.reps, date:r.date }).then(({error})=>{ if(error) console.error('saveRecordRow', error); });
+  }
+  let records = {};
 
   // ---------- última performance por exercício ----------
-  function loadLastPerf(){ try{ return JSON.parse(localStorage.getItem('atlas_lastperf') || '{}'); }catch(e){ return {}; } }
-  function saveLastPerf(){ try{ localStorage.setItem('atlas_lastperf', JSON.stringify(lastPerf)); }catch(e){} }
-  let lastPerf = loadLastPerf();
+  async function loadLastPerfCloud(){
+    const { data } = await sb.from('last_performed').select('*').eq('user_id', currentUser.id);
+    lastPerf = {};
+    (data||[]).forEach(r=>{ lastPerf[r.exercise_name] = { kg:Number(r.kg), reps:r.reps, date:r.date }; });
+  }
+  function saveLastPerfRow(name){
+    if(!currentUser) return;
+    const r = lastPerf[name];
+    sb.from('last_performed').upsert({ user_id: currentUser.id, exercise_name:name, kg:r.kg, reps:r.reps, date:r.date }).then(({error})=>{ if(error) console.error('saveLastPerfRow', error); });
+  }
+  let lastPerf = {};
   function recordLastPerf(name, kg, reps){
     lastPerf[name] = { kg, reps, date:new Date().toISOString() };
-    saveLastPerf();
+    saveLastPerfRow(name);
   }
   function checkPR(name, kg, reps){
     if(!kg || kg <= 0) return false;
     const cur = records[name];
     if(!cur || kg > cur.weight){
       records[name] = { weight:kg, reps:reps, date:new Date().toISOString() };
-      saveRecords();
+      saveRecordRow(name);
       return true;
     }
     return false;
@@ -169,9 +177,18 @@
   }
 
   // ---------- histórico de treinos ----------
-  function loadHistory(){ try{ return JSON.parse(localStorage.getItem('atlas_history') || '[]'); }catch(e){ return []; } }
-  function saveHistoryList(){ try{ localStorage.setItem('atlas_history', JSON.stringify(history)); }catch(e){} }
-  let history = loadHistory();
+  async function loadHistoryCloud(){
+    const { data } = await sb.from('workout_history').select('*').eq('user_id', currentUser.id).order('date', { ascending:false }).limit(90);
+    history = (data||[]).map(h=>({ date:h.date, exercises:h.exercises, totalVolume:Number(h.total_volume), totalSets:h.total_sets, minutes:h.minutes }));
+  }
+  function insertHistoryRow(entry){
+    if(!currentUser) return;
+    sb.from('workout_history').insert({
+      user_id: currentUser.id, date: entry.date, exercises: entry.exercises,
+      total_volume: entry.totalVolume, total_sets: entry.totalSets, minutes: entry.minutes
+    }).then(({error})=>{ if(error) console.error('insertHistoryRow', error); });
+  }
+  let history = [];
   function renderHistory(){
     const box = document.getElementById('historyList');
     if(!history.length){
@@ -276,13 +293,6 @@
     renderStrengthChart(names[0]);
   }
 
-  loadProgress();
-  checkWeekReset();
-  renderHomeArc();
-  updateHomeStats();
-  renderHistory();
-  renderRecords();
-  renderStrengthChips();
 
   // ---------- onboarding ----------
   const REST_BY_GOAL = { hipertrofia:90, forca:150, emagrecimento:45, saude:60 };
@@ -330,6 +340,7 @@
     WEEKLY_GOAL = obData.freq;
     userName = obData.name;
     userGoal = obData.goal;
+    weekStartDB = getMonday(new Date());
     DEFAULT_REST = REST_BY_GOAL[obData.goal] || 90;
     saveProgress();
     renderHomeArc();
@@ -337,24 +348,6 @@
     document.getElementById('onboard').classList.remove('show');
   }
   let DEFAULT_REST = 90;
-  function initOnboarding(){
-    const done = localStorage.getItem('atlas_onboarded');
-    buildOnboardOptions();
-    if(done){
-      DEFAULT_REST = REST_BY_GOAL[userGoal] || 90;
-      updateHomeStats();
-      return;
-    }
-    document.getElementById('onboard').classList.add('show');
-    obShow();
-  }
-  // marca como concluído assim que o usuário sai da tela final
-  document.addEventListener('click', (e)=>{
-    if(e.target && e.target.matches('.ob-next') && obStep === OB_STEPS-1){
-      localStorage.setItem('atlas_onboarded','1');
-    }
-  });
-  initOnboarding();
 
   // ---------- tab switching ----------
   const views = { home:'view-home', train:'view-train', progress:'view-progress', profile:'view-profile' };
@@ -480,46 +473,30 @@
 
   // ---------- workout state (em branco) ----------
   let workout = [];
-  loadWorkoutDraft();
 
-  // ---------- backup: exportar / importar tudo ----------
-  const ATLAS_KEYS = ['atlas_state','atlas_weekStart','atlas_workout','atlas_records','atlas_history','atlas_routines','atlas_lastperf','atlas_onboarded','atlas_activeRoutine'];
-  function exportAtlasData(){
-    const dump = { _app:'ATLAS', _exportedAt:new Date().toISOString() };
-    ATLAS_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v!==null) dump[k] = v; });
-    const blob = new Blob([JSON.stringify(dump, null, 2)], { type:'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `atlas-backup-${new Date().toISOString().slice(0,10)}.json`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-  function importAtlasData(e){
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try{
-        const data = JSON.parse(reader.result);
-        if(data._app !== 'ATLAS') throw new Error('arquivo não reconhecido');
-        ATLAS_KEYS.forEach(k=>{ if(data[k] !== undefined) localStorage.setItem(k, data[k]); });
-        alert('Backup importado. O app vai recarregar.');
-        location.reload();
-      }catch(err){
-        alert('Não foi possível importar esse arquivo — confira se é um backup do ATLAS.');
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+  // ---------- conta ----------
+  async function handleSignOut(){
+    await sb.auth.signOut();
+    location.reload();
   }
 
 
   // ---------- rotinas salvas ----------
-  function loadRoutines(){ try{ return JSON.parse(localStorage.getItem('atlas_routines') || '[]'); }catch(e){ return []; } }
-  function saveRoutinesList(){ try{ localStorage.setItem('atlas_routines', JSON.stringify(routines)); }catch(e){} }
-  let routines = loadRoutines();
-  let activeRoutineName = localStorage.getItem('atlas_activeRoutine') || '';
-  if(activeRoutineName){ document.getElementById('routineTitle').textContent = activeRoutineName; document.getElementById('routineSub').textContent = 'Rotina salva'; }
+  async function loadRoutinesCloud(){
+    const { data } = await sb.from('routines').select('*').eq('user_id', currentUser.id).order('created_at');
+    routines = (data||[]).map(r=>({ id:r.id, name:r.name, exercises:r.exercises }));
+  }
+  async function insertRoutineRow(routine){
+    const { data, error } = await sb.from('routines').insert({ user_id: currentUser.id, name: routine.name, exercises: routine.exercises }).select().single();
+    if(error){ console.error('insertRoutineRow', error); return null; }
+    return data;
+  }
+  function deleteRoutineRow(id){
+    if(!id) return;
+    sb.from('routines').delete().eq('id', id).then(({error})=>{ if(error) console.error('deleteRoutineRow', error); });
+  }
+  let routines = [];
+  let activeRoutineName = '';
 
   function openRoutineSheet(){ renderRoutineList(); document.getElementById('routineSheet').classList.add('show'); }
   function closeRoutineSheet(){
@@ -550,8 +527,9 @@
     });
     box.querySelectorAll('[data-delroutine]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        routines.splice(+btn.dataset.delroutine, 1);
-        saveRoutinesList();
+        const idx = +btn.dataset.delroutine;
+        deleteRoutineRow(routines[idx].id);
+        routines.splice(idx, 1);
         renderRoutineList();
       });
     });
@@ -560,7 +538,6 @@
     const r = routines[idx];
     if(!r) return;
     activeRoutineName = r.name;
-    localStorage.setItem('atlas_activeRoutine', activeRoutineName);
     workout = r.exercises.map(e=>{
       const lp = lastPerf[e.name];
       return {
@@ -578,16 +555,18 @@
     document.getElementById('saveRoutineBtn').style.display = 'none';
     document.getElementById('routineNameInput').focus();
   }
-  function confirmSaveRoutine(){
+  async function confirmSaveRoutine(){
     const name = document.getElementById('routineNameInput').value.trim();
     if(!name || !workout.length) return;
-    routines.push({
+    const routine = {
       name,
       exercises: workout.map(e=>({ name:e.name, meta:e.meta, code:e.code, img:e.img, rest:e.rest, sets: e.sets.map(s=>({kg:s.kg, reps:s.reps})) }))
-    });
-    saveRoutinesList();
+    };
+    const saved = await insertRoutineRow(routine);
+    routine.id = saved ? saved.id : null;
+    routines.push(routine);
     activeRoutineName = name;
-    localStorage.setItem('atlas_activeRoutine', name);
+    saveWorkoutDraft();
     document.getElementById('routineTitle').textContent = name;
     document.getElementById('routineSub').textContent = 'Rotina salva';
     document.getElementById('routineNameInput').value = '';
@@ -848,14 +827,15 @@
     }
     endRest();
     const stats = calcSessionStats();
-    history.unshift({
+    const entry = {
       date: new Date().toISOString(),
       exercises: workout.map(e=>({ name:e.name, sets: e.sets.filter(s=>s.done).map(s=>({kg:s.kg, reps:s.reps})) })),
       totalVolume: stats.totalVolume,
       totalSets: stats.totalSets,
       minutes: stats.minutes
-    });
-    saveHistoryList();
+    };
+    history.unshift(entry);
+    insertHistoryRow(entry);
     renderHistory();
     renderChartFromHistory();
     renderStrengthChips();
@@ -873,11 +853,95 @@
 
     workout = [];
     activeRoutineName = '';
-    localStorage.removeItem('atlas_activeRoutine');
     document.getElementById('routineTitle').textContent = 'Treino livre';
     document.getElementById('routineSub').textContent = 'Monte sua sessão de hoje';
     renderExercises();
   }
 
-  // ---------- progress chart: renderizado a partir do histórico real ----------
-  renderChartFromHistory();
+  // ---------- boot: autenticação + carregamento do app ----------
+  async function bootApp(){
+    document.getElementById('authScreen').classList.remove('show');
+    const hasProfile = await loadProgressCloud();
+    checkWeekReset();
+    await Promise.all([
+      loadWorkoutDraftCloud(),
+      loadRecordsCloud(),
+      loadLastPerfCloud(),
+      loadRoutinesCloud(),
+      loadHistoryCloud()
+    ]);
+    DEFAULT_REST = REST_BY_GOAL[userGoal] || 90;
+    renderHomeArc();
+    updateHomeStats();
+    renderHistory();
+    renderRecords();
+    renderStrengthChips();
+    renderChartFromHistory();
+    renderExercises();
+    buildOnboardOptions();
+    if(activeRoutineName){
+      document.getElementById('routineTitle').textContent = activeRoutineName;
+      document.getElementById('routineSub').textContent = 'Rotina salva';
+    }
+    if(hasProfile){
+      document.getElementById('onboard').classList.remove('show');
+    } else {
+      obStep = 0; obShow();
+      document.getElementById('onboard').classList.add('show');
+    }
+  }
+
+  let authMode = 'signin';
+  function renderAuthMode(){
+    document.getElementById('authTitle').textContent = authMode==='signin' ? 'Entrar' : 'Criar conta';
+    document.getElementById('authSubmitBtn').textContent = authMode==='signin' ? 'Entrar' : 'Criar conta';
+    document.getElementById('authToggle').textContent = authMode==='signin' ? 'Não tem conta? Criar uma' : 'Já tem conta? Entrar';
+    document.getElementById('authError').textContent = '';
+  }
+  function toggleAuthMode(){ authMode = authMode==='signin' ? 'signup' : 'signin'; renderAuthMode(); }
+  function translateAuthError(msg){
+    if(/already registered|already exists/i.test(msg)) return 'Esse email já tem conta — tenta entrar.';
+    if(/invalid login credentials/i.test(msg)) return 'Email ou senha incorretos.';
+    if(/6 characters|at least 6/i.test(msg)) return 'A senha precisa ter pelo menos 6 caracteres.';
+    if(/valid email/i.test(msg)) return 'Digite um email válido.';
+    return 'Algo deu errado — tenta de novo.';
+  }
+  async function handleAuthSubmit(){
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errEl = document.getElementById('authError');
+    errEl.style.color = '#E8674A';
+    errEl.textContent = '';
+    if(!email || !password){ errEl.textContent = 'Preencha email e senha.'; return; }
+    const btn = document.getElementById('authSubmitBtn');
+    btn.textContent = 'Aguarde…'; btn.disabled = true;
+    try{
+      let result;
+      if(authMode === 'signup') result = await sb.auth.signUp({ email, password });
+      else result = await sb.auth.signInWithPassword({ email, password });
+      if(result.error) throw result.error;
+      if(authMode === 'signup' && !result.data.session){
+        errEl.style.color = 'var(--neon)';
+        errEl.textContent = 'Conta criada — confira seu email para confirmar antes de entrar.';
+        btn.textContent = 'Criar conta'; btn.disabled = false;
+        return;
+      }
+      currentUser = result.data.user;
+      await bootApp();
+    }catch(err){
+      errEl.textContent = translateAuthError(err.message || '');
+      btn.textContent = authMode==='signup' ? 'Criar conta' : 'Entrar';
+      btn.disabled = false;
+    }
+  }
+  async function initAuthFlow(){
+    const { data:{ session } } = await sb.auth.getSession();
+    if(session){
+      currentUser = session.user;
+      await bootApp();
+    } else {
+      renderAuthMode();
+      document.getElementById('authScreen').classList.add('show');
+    }
+  }
+  initAuthFlow();
