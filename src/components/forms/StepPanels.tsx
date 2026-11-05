@@ -10,6 +10,7 @@ import { useSession } from "@/components/shell/SessionProvider";
 import { apiGet, apiSend } from "@/lib/api-client";
 import { cachedGet, invalidateCache } from "@/lib/dashboard/client";
 import { lookupPath } from "@/lib/useIdNameLookup";
+import { ACCURACY_TARGET, computeCountAccuracy, type CountItemInput } from "@/lib/inventory/accuracy";
 import { formatCurrencyBRL } from "@/lib/format";
 import { FormDialog, filledItems, num, opt } from "./FormDialog";
 import { SOURCES } from "./sources";
@@ -70,11 +71,21 @@ export function CountItems({ countId, status, onChanged }: { countId: string; st
 
   if (!items) return <p className="px-4 py-3 text-sm text-muted-foreground">Carregando itens...</p>;
   const pending = items.filter((i) => i.status !== "counted").length;
+  const accuracy = computeCountAccuracy(items as unknown as CountItemInput[], () => 0);
   return (
     <div className="flex flex-col gap-2 px-4 py-3">
       <h3 className="text-sm font-semibold">
         Itens <span className="font-normal text-muted-foreground">· {pending} a contar</span>
       </h3>
+      {accuracy.itemAccuracy !== null && (
+        <p className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Acuracidade</span>
+          <Badge tone={accuracy.itemAccuracy >= ACCURACY_TARGET ? "success" : "warning"}>{accuracy.itemAccuracy.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</Badge>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {accuracy.matchedItems} de {accuracy.countedItems} contados sem diferença · meta {ACCURACY_TARGET}%
+          </span>
+        </p>
+      )}
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Sem saldo neste depósito.</p>
       ) : (

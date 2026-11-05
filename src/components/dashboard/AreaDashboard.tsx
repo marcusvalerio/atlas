@@ -18,7 +18,7 @@ import { formatInteger } from "@/lib/format";
 import { DashboardHeader, FocusPanel, usePeriod } from "./Context";
 import { ChangesPanel, SummaryStrip } from "./ReportBlocks";
 import { ProblemsPanel } from "./Problems";
-import { AgingBuckets, CommercialFunnel, DailyHeatmap, ErpFlows, MonthlyTrend, ProjectedTrend, RateGauge, StatusDistribution, TopRanking } from "./Insights";
+import { AgingBuckets, CommercialFunnel, DailyHeatmap, ErpFlows, InventoryAccuracyGauge, InventoryAccuracyTrend, InventoryVarianceRanking, MonthlyTrend, ProjectedTrend, RateGauge, StatusDistribution, TopRanking } from "./Insights";
 
 // Painéis contextuais por área. Todos seguem a mesma leitura:
 // CONTEXTO → RESUMO → MUDANÇAS/PROBLEMAS → OPERAÇÕES (fluxo) →
@@ -161,6 +161,8 @@ export const AREAS: Record<AreaId, AreaDef> = {
     sections: ["logistica"],
     insights: () => (
       <>
+        <InventoryAccuracyGauge />
+        <InventoryVarianceRanking />
         <MonthlyTrend report={REPORTS.inventory} metricKey="issues_count" title="Saídas por mês" />
         <MonthlyTrend report={REPORTS.inventory} metricKey="receipts_count" title="Entradas por mês" />
         <DailyHeatmap title="Movimentações por dia" description="Últimas 12 semanas." source="/api/stock-movements" permission="stock.view" dateKey="created_at" />
@@ -193,6 +195,8 @@ export const AREAS: Record<AreaId, AreaDef> = {
         <StatusDistribution title="Expedições do período por situação" source="/api/shipments" permission="shipments.view" groups={SHIPMENT_GROUPS} dateKey="created_at" range={range} variant="donut" />
         <MonthlyTrend report={REPORTS.logistics} metricKey="delivered_count" title="Entregas por mês" />
         <DailyHeatmap title="Expedições por dia de saída" description="Últimas 12 semanas." source="/api/shipments" permission="shipments.view" dateKey="shipped_at" />
+        <InventoryAccuracyGauge />
+        <InventoryAccuracyTrend />
       </>
     ),
   },

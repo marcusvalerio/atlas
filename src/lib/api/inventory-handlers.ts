@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthContext, hasPermission } from "@/lib/auth/context";
 import { ApiError, forbiddenError, notFoundError, unauthorizedError, validationError, translatePostgresError } from "@/lib/database/errors";
 import { jsonError } from "./response";
+import { ACCURACY_TARGET, computeCountAccuracy, type CountItemInput } from "@/lib/inventory/accuracy";
 import {
   receiveStockSchema,
   issueStockSchema,
@@ -833,6 +834,84 @@ export async function registerStockReturn(request: NextRequest) {
     });
     if (error) throw rpcError(error);
     return NextResponse.json({ success: true, data }, { status: 201 });
+  } catch (error) {
+    return jsonError(error);
+  }
+}
+
+// ------------------------------------------------- Acuracidade do inventário
+// Calculada no servidor a partir das contagens gravadas (lib/inventory/accuracy).
+// Sem mudança de banco: lê stock_counts, stock_count_items e o custo médio.
+export async function getStockCountAccuracy(request: NextRequest) {
+  try {
+    const { companyId } = await requireStockAccess("stock.view");
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 12, 1), 50);
+    const admin = createAdminClient();
+
+    const { data: counts, error } = await admin
+      .from("stock_counts")
+      .select("id, code, status, warehouse_id, created_at, closed_at")
+      .eq("company_id", companyId)
+      .in("status", ["counting", "closed"])
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw translatePostgresError(error);
+    const ids = (counts ?? []).map((c) => c.id as string);
+    if (!ids.length) return NextResponse.json({ success: true, data: { target: ACCURACY_TARGET, counts: [] } });
+
+    const { data: items, error: itemsError } = await admin
+      .from("stock_count_items")
+      .select("count_id, product_id, expected_quantity, counted_quantity")
+      .eq("company_id", companyId)
+      .in("count_id", ids);
+    if (itemsError) throw translatePostgresError(itemsError);
+
+    const productIds = [...new Set((items ?? []).map((i) => i.product_id as string))];
+    const cost = new Map<string, number>();
+    const names = new Map<string, string>();
+    if (productIds.length) {
+      const [{ data: products, error: pErr }, { data: balances, error: bErr }] = await Promise.all([
+        admin.from("products").select("id, code, name, cost_price").eq("company_id", companyId).in("id", productIds),
+        admin.from("product_cost_balances").select("product_id, quantity, total_value").eq("company_id", companyId).in("product_id", productIds),
+      ]);
+      if (pErr) throw translatePostgresError(pErr);
+      if (bErr) throw translatePostgresError(bErr);
+      const agg = new Map<string, { q: number; v: number }>();
+      for (const b of balances ?? []) {
+        const a = agg.get(b.product_id as string) ?? { q: 0, v: 0 };
+        a.q += Number(b.quantity) || 0;
+        a.v += Number(b.total_value) || 0;
+        agg.set(b.product_id as string, a);
+      }
+      for (const p of products ?? []) {
+        const a = agg.get(p.id as string);
+        cost.set(p.id as string, a && a.q > 0 ? a.v / a.q : Number(p.cost_price) || 0);
+        names.set(p.id as string, [p.code, p.name].filter(Boolean).join(" · "));
+      }
+    }
+
+    const byCount = new Map<string, CountItemInput[]>();
+    for (const i of items ?? []) {
+      const list = byCount.get(i.count_id as string) ?? [];
+      list.push(i as CountItemInput);
+      byCount.set(i.count_id as string, list);
+    }
+
+    const result = (counts ?? []).map((c) => {
+      const acc = computeCountAccuracy(byCount.get(c.id as string) ?? [], (pid) => cost.get(pid) ?? 0);
+      return {
+        id: c.id,
+        code: c.code,
+        status: c.status,
+        warehouseId: c.warehouse_id,
+        createdAt: c.created_at,
+        closedAt: c.closed_at,
+        ...acc,
+        variances: acc.variances.slice(0, 8).map((v) => ({ ...v, productName: names.get(v.productId) ?? "Produto" })),
+      };
+    });
+    return NextResponse.json({ success: true, data: { target: ACCURACY_TARGET, counts: result } });
   } catch (error) {
     return jsonError(error);
   }

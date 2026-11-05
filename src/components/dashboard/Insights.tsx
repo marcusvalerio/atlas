@@ -472,3 +472,103 @@ function ProductionFlow({ range }: { range: DateRange }) {
   const flow = orders.data ? buildProductionFlow(orders.data, range) : null;
   return <FlowBody flow={flow} loading={orders.loading} error={orders.error} onRetry={orders.reload} emptyText="Nenhuma ordem de produção planejada para o período selecionado." />;
 }
+
+// ------------------------------------------------- acuracidade do inventário
+// Lê /api/stock-counts/accuracy (contagens gravadas). Sem contagem, diz isso.
+type AccuracyVariance = { productId: string; productName: string; expected: number; counted: number; variance: number; varianceValue: number };
+type AccuracyCount = {
+  id: string; code: string; status: string; createdAt: string; closedAt: string | null;
+  countedItems: number; matchedItems: number; totalItems: number;
+  itemAccuracy: number | null; valueAccuracy: number | null; netVarianceValue: number;
+  variances: AccuracyVariance[];
+};
+type AccuracyData = { target: number; counts: AccuracyCount[] };
+
+const ACCURACY_PATH = "/api/stock-counts/accuracy";
+const pct1 = (v: number | null | undefined) => (v === null || v === undefined ? "—" : `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`);
+
+function useAccuracy() {
+  const { can } = useSession();
+  const allowed = can("stock.view");
+  const res = useCached<AccuracyData>(ACCURACY_PATH, allowed);
+  const counts = (res.data?.counts ?? []).filter((c) => c.countedItems > 0);
+  return { allowed, res, counts, target: res.data?.target ?? 95 };
+}
+
+/** Acuracidade da contagem mais recente (encerrada ou em andamento), contra a meta. */
+export function InventoryAccuracyGauge() {
+  const { allowed, res, counts, target } = useAccuracy();
+  if (!allowed) return null;
+  const latest = counts[0];
+  const previous = counts[1];
+  const value = latest?.itemAccuracy ?? 0;
+  const tone: Tone = value >= target ? "success" : "warning";
+  const caption = latest ? `${latest.code} · ${latest.matchedItems} de ${latest.countedItems} itens certos${latest.status === "counting" ? " · em andamento" : ""}` : undefined;
+  return (
+    <ChartPanel
+      title="Acuracidade do inventário"
+      description={previous ? `Última contagem. Anterior (${previous.code}): ${pct1(previous.itemAccuracy)}.` : "Itens que bateram ÷ itens contados, na última contagem."}
+      loading={res.loading}
+      error={res.error}
+      onRetry={res.reload}
+      empty={!res.loading && !latest}
+      emptyTitle="Nenhuma contagem ainda"
+      emptyDescription="Faça uma contagem em Logística → Inventário para medir a acuracidade."
+      height={200}
+      table={latest ? { columns: [{ label: "Indicador" }, { label: "Valor", align: "right" }], rows: [["Por itens", pct1(latest.itemAccuracy)], ["Por valor", pct1(latest.valueAccuracy)], ["Diferença líquida", formatCurrencyBRL(latest.netVarianceValue)], ["Meta", `${target}%`]] } : undefined}
+      footer={latest ? <p className="text-xs text-muted-foreground">Por valor: <b className="font-medium text-foreground tabular-nums">{pct1(latest.valueAccuracy)}</b> · diferença líquida <b className="font-medium text-foreground tabular-nums">{formatCurrencyBRL(latest.netVarianceValue)}</b> · meta {target}%</p> : undefined}
+    >
+      <HalfGauge value={value} label="Itens sem diferença" target={target} tone={tone} caption={caption} />
+    </ChartPanel>
+  );
+}
+
+/** Evolução da acuracidade, contagem a contagem (da mais antiga para a mais recente). */
+export function InventoryAccuracyTrend() {
+  const { allowed, res, counts } = useAccuracy();
+  if (!allowed) return null;
+  const data = [...counts].reverse().map((c, i, all) => ({ label: c.code, value: c.itemAccuracy ?? 0, highlight: i === all.length - 1 }));
+  return (
+    <ChartPanel
+      title="Acuracidade por contagem"
+      description="Percentual de itens sem diferença em cada inventário."
+      loading={res.loading}
+      error={res.error}
+      onRetry={res.reload}
+      empty={!res.loading && data.length === 0}
+      emptyTitle="Nenhuma contagem ainda"
+      table={{ columns: [{ label: "Contagem" }, { label: "Por itens", align: "right" }, { label: "Por valor", align: "right" }], rows: [...counts].reverse().map((c) => [c.code, pct1(c.itemAccuracy), pct1(c.valueAccuracy)]) }}
+    >
+      <ColumnTrend data={data} format={(v) => pct1(v)} seriesLabel="Acuracidade" />
+    </ChartPanel>
+  );
+}
+
+/** Produtos com as maiores diferenças em valor na última contagem: onde focar o próximo rotativo. */
+export function InventoryVarianceRanking() {
+  const { allowed, res, counts } = useAccuracy();
+  if (!allowed) return null;
+  const latest = counts[0];
+  const items = (latest?.variances ?? []).map((v) => ({
+    id: v.productId,
+    label: v.productName,
+    value: Math.abs(v.varianceValue),
+    sublabel: `${v.variance > 0 ? "+" : ""}${v.variance.toLocaleString("pt-BR")} (sistema ${v.expected.toLocaleString("pt-BR")})`,
+    href: "/app/logistica/inventario",
+  }));
+  return (
+    <ChartPanel
+      title="Onde o estoque mais erra"
+      description={latest ? `Diferenças da ${latest.code}, em valor ao custo médio.` : "Diferenças da última contagem."}
+      loading={res.loading}
+      error={res.error}
+      onRetry={res.reload}
+      empty={!res.loading && items.length === 0}
+      emptyTitle={latest ? "Nenhuma diferença" : "Nenhuma contagem ainda"}
+      emptyDescription={latest ? "Todos os itens contados bateram com o sistema." : undefined}
+      table={{ columns: [{ label: "Produto" }, { label: "Diferença", align: "right" }, { label: "Valor", align: "right" }], rows: (latest?.variances ?? []).map((v) => [v.productName, `${v.variance > 0 ? "+" : ""}${v.variance}`, formatCurrencyBRL(v.varianceValue)]) }}
+    >
+      <RankingBars items={items} format={(v) => formatCurrencyBRL(v)} />
+    </ChartPanel>
+  );
+}

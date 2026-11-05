@@ -9,6 +9,7 @@ import { SimpleCreateDialog } from "@/components/forms/simple-forms";
 import { WorkflowActions, type WorkflowAction } from "@/components/forms/WorkflowActions";
 import { CountItems } from "@/components/forms/StepPanels";
 import { dbStatusCode } from "@/lib/status";
+import { InventoryAccuracyGauge, InventoryVarianceRanking } from "@/components/dashboard/Insights";
 
 const ACTIONS: WorkflowAction[] = [
   { id: "close", label: "Encerrar e ajustar estoque", path: "close", permission: "stock.approve", statuses: ["counting"], confirm: "As diferenças contadas viram ajustes de estoque. Itens não contados ficam como estão.", success: "Contagem encerrada." },
@@ -37,6 +38,12 @@ export default function InventarioPage() {
       description="Contagens físicas por armazém, da abertura ao fechamento com ajuste."
       apiPath="/api/stock-counts"
       refreshToken={refresh}
+      summary={
+        <div key={`acc-${refresh}`} className="grid gap-4 lg:grid-cols-2">
+          <InventoryAccuracyGauge />
+          <InventoryVarianceRanking />
+        </div>
+      }
       actions={
         can("stock.count") ? (
           <Button size="sm" onClick={() => setCreating(true)}>
