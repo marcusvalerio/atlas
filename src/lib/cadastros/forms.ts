@@ -35,8 +35,8 @@ export const produtoForm: FormSection[] = [
       { key: "subcategoria", label: "Subcategoria", type: "select", options: SUBCATEGORIAS_PRODUTO, span: 1 },
       { key: "unidade", label: "Unidade de medida", type: "select", options: UNIDADES_PRODUTO, required: true, span: 1 },
       { key: "codigoBarras", label: "Código de barras", type: "text", mono: true, span: 2 },
-      { key: "ncm", label: "NCM", type: "text", mono: true, span: 1 },
-      { key: "fornecedorId", label: "Fornecedor", type: "select", optionsSource: "fornecedores", span: 1 },
+      { key: "ncm", label: "NCM", type: "text", mono: true, lookup: "ncm", span: 2 },
+      { key: "fornecedorId", label: "Fornecedor", type: "select", optionsSource: "fornecedores", span: 2 },
     ],
   },
   {

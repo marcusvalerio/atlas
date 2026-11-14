@@ -25,6 +25,8 @@ export type FormField = {
   disabledOnEdit?: boolean;
   /** Código (SKU, NCM, código de barras): digitado em Geist Mono. */
   mono?: boolean;
+  /** Consulta assistida: "ncm" busca na tabela oficial de NCM. */
+  lookup?: "ncm";
 };
 
 export type FormSection = {

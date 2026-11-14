@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Combobox } from "@/components/ui/Combobox";
 import { Select } from "@/components/ui/Controls";
 import { Dialog } from "@/components/ui/Dialog";
+import { NcmInput } from "@/components/fiscal/NcmInput";
 import { FormField } from "@/components/ui/FormField";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Feedback";
@@ -34,6 +35,8 @@ export type FieldDef =
   | { key: string; label: string; type: "text" | "textarea"; required?: boolean; help?: string; placeholder?: string; maxLength?: number; default?: string }
   | { key: string; label: string; type: "number" | "money"; required?: boolean; help?: string; min?: number; default?: string }
   | { key: string; label: string; type: "date"; required?: boolean; help?: string; default?: string }
+  /** NCM com consulta à tabela oficial; ao escolher, preenche `describeInto` com a descrição. */
+  | { key: string; label: string; type: "ncm"; required?: boolean; help?: string; describeInto?: string; default?: string }
   | { key: string; label: string; type: "select"; required?: boolean; help?: string; options: { value: string; label: string }[]; default?: string }
   | { key: string; label: string; type: "lookup"; required?: boolean; help?: string; source: LookupSource; default?: string }
   | {
@@ -215,6 +218,14 @@ export function FormDialog({ open, onOpenChange, title, description, submitLabel
               <FormField label={f.label} required={f.required} help={f.help}>
                 {f.type === "items" ? (
                   <ItemsField field={f} value={v as ItemValue[]} onChange={(x) => set(f.key, x)} open={open} />
+                ) : f.type === "ncm" ? (
+                  <NcmInput
+                    value={v as string}
+                    onChange={(x) => set(f.key, x)}
+                    onPick={(item) => {
+                      if (f.describeInto && !String(values[f.describeInto] ?? "").trim()) set(f.describeInto, item.description);
+                    }}
+                  />
                 ) : f.type === "lookup" ? (
                   <LookupField field={f} value={v as string} onChange={(x) => set(f.key, x)} open={open} />
                 ) : f.type === "select" ? (

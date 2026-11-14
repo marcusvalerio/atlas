@@ -9,6 +9,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Checkbox, Select } from "@/components/ui/Controls";
 import { Combobox } from "@/components/ui/Combobox";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { NcmInput } from "@/components/fiscal/NcmInput";
 
 export type EntityFormMode = "create" | "edit" | "view";
 
@@ -48,6 +49,9 @@ function FieldControl({
     return (
       <Textarea value={(value as string) ?? ""} placeholder={field.placeholder} readOnly={readOnly} onChange={(e) => onChange(field.key, e.target.value)} />
     );
+  }
+  if (field.lookup === "ncm") {
+    return <NcmInput value={(value as string) ?? ""} readOnly={readOnly} onChange={(v) => onChange(field.key, v)} />;
   }
   if (field.type === "date") {
     return <DatePicker value={(value as string) ?? ""} onChange={(v) => onChange(field.key, v)} disabled={readOnly} />;

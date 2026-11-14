@@ -309,7 +309,7 @@ export const SIMPLE_FORMS = {
     success: "NCM cadastrado.",
     size: "sm",
     fields: [
-      { key: "code", label: "Código NCM", type: "text", required: true, placeholder: "Ex.: 9403.30.00" },
+      { key: "code", label: "Código NCM", type: "ncm", required: true, describeInto: "description", help: "Digite o código ou uma palavra e escolha na tabela oficial." },
       { key: "description", label: "Descrição", type: "text", required: true },
     ],
     toBody: (v) => ({ code: txt(v.code), description: txt(v.description) }),
