@@ -49,19 +49,17 @@ const moduleById = Object.fromEntries(C.MODULES.map((m) => [m.id, m]));
 const moduleName = (id) => (id === "cadastros" ? "Cadastros" : moduleById[id]?.name ?? id);
 const pad = (n) => String(n).padStart(2, "0");
 
-// Símbolo do produto — "Núcleo": quatro módulos girando em torno de um
-// centro laranja (áreas diferentes, uma base só). Mesma geometria de
+// Símbolo do produto — "Estrela": estrela de 4 pontas feita de pontos. Mesma geometria de
 // BRAND_MARK em src/lib/brand.ts (tests/brand.test.ts confere), grade 32×32.
-const MARK = { modules: [[3, 3, 16, 8], [21, 3, 8, 16], [13, 21, 16, 8], [3, 13, 8, 16]], core: [13, 13, 6, 6], r: 1.4 };
-const markRects = (modCls, coreCls) =>
-  MARK.modules.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${MARK.r}" ${modCls}/>`).join("") +
-  `<rect x="${MARK.core[0]}" y="${MARK.core[1]}" width="${MARK.core[2]}" height="${MARK.core[3]}" rx="${MARK.r}" ${coreCls}/>`;
-// Só o símbolo (cabeçalho, rodapé): módulos em currentColor, centro em fogo.
+const MARK = { dots: [[16, 2.4], [16, 5.8], [12.6, 9.2], [16, 9.2], [19.4, 9.2], [9.2, 12.6], [12.6, 12.6], [16, 12.6], [19.4, 12.6], [22.8, 12.6], [2.4, 16], [5.8, 16], [9.2, 16], [12.6, 16], [16, 16], [19.4, 16], [22.8, 16], [26.2, 16], [29.6, 16], [9.2, 19.4], [12.6, 19.4], [16, 19.4], [19.4, 19.4], [22.8, 19.4], [12.6, 22.8], [16, 22.8], [19.4, 22.8], [16, 26.2], [16, 29.6]], r: 1.35 };
+const markRects = (modCls) =>
+  MARK.dots.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${MARK.r}" ${modCls}/>`).join("");
+// Só o símbolo (cabeçalho, rodapé): pontos em currentColor.
 const mark = (size = 22, cls = "mark") =>
-  `<svg class="${cls}" viewBox="0 0 32 32" width="${size}" height="${size}" aria-hidden="true">${markRects('class="mark-mod"', 'class="mark-core"')}</svg>`;
-// Em placa (favicon): placa escura, módulos claros, centro em fogo.
+  `<svg class="${cls}" viewBox="0 0 32 32" width="${size}" height="${size}" aria-hidden="true">${markRects('class="mark-mod"')}</svg>`;
+// Em placa (favicon): placa escura, pontos claros.
 const markTile = () =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#100c08"/><g transform="translate(16 16) scale(.64) translate(-16 -16)">${markRects('fill="#f3f4f5"', 'fill="#ff9408"')}</g></svg>`;
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#100c08"/><g transform="translate(16 16) scale(.76) translate(-16 -16)">${markRects('fill="#f3f4f5"')}</g></svg>`;
 
 // Nome do produto no cabeçalho e no rodapé: "ATLAS" + ".ERP" em tom menor.
 const BRAND_WORD = `${esc(C.META.title.replace(/\.ERP$/, ""))}<span class="brand-dim">.ERP</span>`;
@@ -1094,7 +1092,7 @@ function converge(labels) {
     const x = cx - size / 2;
     const y = cy - size / 2;
     const s = (size * 0.64) / 32;
-    return `<g class="cv-mark"><rect x="${f1(x)}" y="${f1(y)}" width="${f1(size)}" height="${f1(size)}" rx="${f1(size * 0.22)}" class="cv-mark-bg"/><g transform="translate(${f1(cx)} ${f1(cy)}) scale(${s.toFixed(4)}) translate(-16 -16)">${markRects('class="cv-mark-mod"', 'class="cv-mark-core"')}</g></g>`;
+    return `<g class="cv-mark"><rect x="${f1(x)}" y="${f1(y)}" width="${f1(size)}" height="${f1(size)}" rx="${f1(size * 0.22)}" class="cv-mark-bg"/><g transform="translate(${f1(cx)} ${f1(cy)}) scale(${s.toFixed(4)}) translate(-16 -16)">${markRects('class="cv-mark-mod"')}</g></g>`;
   };
   const pill = (x, y, w, h, label, i) =>
     `<g class="cv-silo" data-silo="${i}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}"/><text x="${x + w / 2}" y="${f1(y + h / 2 + 4)}" text-anchor="middle">${esc(label.toUpperCase())}</text></g>`;

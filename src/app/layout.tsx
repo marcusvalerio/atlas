@@ -10,30 +10,32 @@ import { THEME_STORAGE_KEY } from "@/lib/theme";
 import "./globals.css";
 
 // Tipografia servida pelo próprio app (sem CDN; funciona offline após o
-// build). Instrument Sans para interface e dados (dígitos tabulares via
-// .tabular-nums/.num), Geist Serif só nos momentos editoriais
-// (saudação do Início, login) e JetBrains Mono para códigos. Licenças OFL
-// em src/app/fonts/.
+// build). Inter para interface e dados (dígitos tabulares via
+// .tabular-nums/.num), Newsreader nos momentos editoriais (saudação do
+// Início, login, títulos de página) e Geist Mono para códigos (SKU, NCM,
+// chaves de acesso). Licenças OFL em src/app/fonts/.
 const sans = localFont({
   src: [
-    { path: "./fonts/instrument-sans-latin-wght-normal.woff2", weight: "400 700", style: "normal" },
-    { path: "./fonts/instrument-sans-latin-ext-wght-normal.woff2", weight: "400 700", style: "normal" },
+    { path: "./fonts/inter-latin-wght-normal.woff2", weight: "100 900", style: "normal" },
+    { path: "./fonts/inter-latin-ext-wght-normal.woff2", weight: "100 900", style: "normal" },
   ],
-  variable: "--font-instrument-sans",
+  variable: "--font-inter",
   display: "swap",
 });
 
 const serif = localFont({
-  src: "./fonts/geist-serif-variable.woff2",
-  weight: "100 900",
+  src: [
+    { path: "./fonts/newsreader-latin-wght-normal.woff2", weight: "200 800", style: "normal" },
+    { path: "./fonts/newsreader-latin-ext-wght-normal.woff2", weight: "200 800", style: "normal" },
+  ],
   variable: "--font-serif",
   display: "swap",
 });
 
-const jetbrains = localFont({
-  src: "./fonts/jetbrains-mono-latin-wght-normal.woff2",
-  weight: "100 800",
-  variable: "--font-jetbrains",
+const mono = localFont({
+  src: "./fonts/geist-mono-latin-wght-normal.woff2",
+  weight: "100 900",
+  variable: "--font-geist-mono",
   display: "swap",
 });
 
@@ -68,7 +70,7 @@ const INPUT_MODALITY_SCRIPT = `(function(){var d=document.documentElement;functi
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${sans.variable} ${serif.variable} ${jetbrains.variable} h-full`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${sans.variable} ${serif.variable} ${mono.variable} h-full`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_THEME_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: INPUT_MODALITY_SCRIPT }} />

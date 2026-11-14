@@ -6,6 +6,8 @@ export type ColumnConfig = {
   label: string;
   render?: "status" | "text";
   align?: "left" | "right" | "center";
+  /** Código (SKU, NCM, código de barras): mostrado em Geist Mono. */
+  mono?: boolean;
 };
 
 export type FilterConfig =

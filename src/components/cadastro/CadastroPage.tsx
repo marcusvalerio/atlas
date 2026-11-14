@@ -107,7 +107,7 @@ function CadastroInner<T extends BaseEntity>({ config }: { config: CadastroConfi
         value: (it: Item) => it.row[col.key],
         cell: col.render === "status" ? (it: Item) => <StatusBadge status={String(it.row[col.key] ?? "")} /> : undefined,
         mobile: index === 0 ? ("title" as const) : col.render === "status" ? ("badge" as const) : index < 4 ? ("meta" as const) : undefined,
-        mono: index === 0,
+        mono: index === 0 || !!col.mono,
       })),
     [config.columns]
   );

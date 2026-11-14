@@ -169,7 +169,7 @@ function ProductNcmRow({ product, onSaved }: { product: Row; onSaved: () => void
       <span className="min-w-0 flex-1 truncate text-sm">
         <span className="font-mono text-xs text-muted-foreground">{s(product.codigo)}</span> {s(product.descricao)}
       </span>
-      <Input className="w-32" value={ncm} onChange={(e) => setNcm(e.target.value)} inputMode="numeric" placeholder="NCM" aria-label={`NCM de ${s(product.descricao)}`} />
+      <Input className="code w-32" value={ncm} onChange={(e) => setNcm(e.target.value)} inputMode="numeric" placeholder="NCM" aria-label={`NCM de ${s(product.descricao)}`} />
       <Button size="sm" variant="secondary" onClick={save} loading={busy} disabled={!ncm}>
         Salvar
       </Button>

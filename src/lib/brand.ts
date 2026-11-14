@@ -17,19 +17,44 @@ export const PRODUCT_AUTHOR = "Marcus Valério";
 export const PRODUCT_CREDIT = `Criado por ${PRODUCT_AUTHOR}`;
 
 /**
- * Símbolo "Núcleo" (grade 32×32): quatro módulos girando em torno de um
- * centro — áreas diferentes, uma base só. O centro é sempre o acento (fogo).
- * Mesma geometria em scripts/build-landing.mjs e src/app/icon.svg.
+ * Símbolo "Estrela" (grade 32×32): uma estrela de 4 pontas feita de pontos —
+ * cada ponto um registro, juntos uma direção. Mesma geometria em
+ * scripts/build-landing.mjs, scripts/build-manuals.mjs e src/app/icon.svg
+ * (tests/brand.test.ts confere).
  */
 export const BRAND_MARK = {
-  modules: [
-    [3, 3, 16, 8],
-    [21, 3, 8, 16],
-    [13, 21, 16, 8],
-    [3, 13, 8, 16],
+  dots: [
+    [16, 2.4],
+    [16, 5.8],
+    [12.6, 9.2],
+    [16, 9.2],
+    [19.4, 9.2],
+    [9.2, 12.6],
+    [12.6, 12.6],
+    [16, 12.6],
+    [19.4, 12.6],
+    [22.8, 12.6],
+    [2.4, 16],
+    [5.8, 16],
+    [9.2, 16],
+    [12.6, 16],
+    [16, 16],
+    [19.4, 16],
+    [22.8, 16],
+    [26.2, 16],
+    [29.6, 16],
+    [9.2, 19.4],
+    [12.6, 19.4],
+    [16, 19.4],
+    [19.4, 19.4],
+    [22.8, 19.4],
+    [12.6, 22.8],
+    [16, 22.8],
+    [19.4, 22.8],
+    [16, 26.2],
+    [16, 29.6],
   ],
-  core: [13, 13, 6, 6],
-  radius: 1.4,
+  radius: 1.35,
 } as const;
 
 /**

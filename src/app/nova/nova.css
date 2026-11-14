@@ -3,7 +3,7 @@
   landing de hoje (/). Usa a paleta oficial do ERP (globals.css):
     Smoky Black #100C08 · Chef's Hat #F3F4F5 · Drifting Cloud #DBE0E1
     Merin's Fire #FF9408 (destaque) · Sauce Piquante #CA3F16 (problema)
-  Tipos: Geist Serif (momentos editoriais) + Instrument Sans (interface),
+  Tipos: Newsreader (momentos editoriais) + Inter (interface),
   ambos já carregados pelo layout raiz. Tema próprio, cores declaradas aqui.
 */
 .nv {
@@ -20,7 +20,7 @@
   --on-dark: #f3f4f5;
   --on-dark-muted: rgba(243, 244, 245, 0.66);
   --serif: var(--font-serif), ui-serif, Georgia, serif;
-  --sans: var(--font-instrument-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   color-scheme: light;
   background: var(--paper);
