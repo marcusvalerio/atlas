@@ -173,6 +173,7 @@ export const ERP_NAV: NavSection[] = [
     items: [
       { label: "Ordens de produção", href: "/app/producao/ordens", permission: "production_orders.view", keywords: ["op"] },
       { label: "Estruturas (BOM)", href: "/app/producao/estruturas", permission: "production_boms.view", keywords: ["bom", "ficha técnica"] },
+      { label: "Planejamento (MRP)", href: "/app/producao/mrp", permission: "production_orders.view", keywords: ["mrp", "necessidades", "planejamento de materiais"] },
     ],
   },
   {
