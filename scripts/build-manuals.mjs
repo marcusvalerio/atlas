@@ -148,12 +148,14 @@ function renderHtml(markdown) {
 }
 
 // ---------------------------------------------------------------- página
-// Símbolo "Estrela" — mesma geometria de BRAND_MARK (src/lib/brand.ts),
-// conferida por tests/brand.test.ts. Na capa escura: pontos claros.
-const MARK = { dots: [[16, 2.4], [16, 5.8], [12.6, 9.2], [16, 9.2], [19.4, 9.2], [9.2, 12.6], [12.6, 12.6], [16, 12.6], [19.4, 12.6], [22.8, 12.6], [2.4, 16], [5.8, 16], [9.2, 16], [12.6, 16], [16, 16], [19.4, 16], [22.8, 16], [26.2, 16], [29.6, 16], [9.2, 19.4], [12.6, 19.4], [16, 19.4], [19.4, 19.4], [22.8, 19.4], [12.6, 22.8], [16, 22.8], [19.4, 22.8], [16, 26.2], [16, 29.6]], r: 1.35 };
+// Símbolo "Núcleo" — mesma geometria de BRAND_MARK (src/lib/brand.ts),
+// conferida por tests/brand.test.ts. Na capa escura: módulos claros e o
+// centro em fogo.
+const MARK = { modules: [[3, 3, 16, 8], [21, 3, 8, 16], [13, 21, 16, 8], [3, 13, 8, 16]], core: [13, 13, 6, 6], r: 1.4 };
 const MARK_SVG = (size) =>
   `<svg viewBox="0 0 32 32" width="${size}" height="${size}" aria-hidden="true">` +
-  MARK.dots.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${MARK.r}" class="mark-mod"/>`).join("") + `</svg>`;
+  MARK.modules.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${MARK.r}" class="mark-mod"/>`).join("") +
+  `<rect x="${MARK.core[0]}" y="${MARK.core[1]}" width="${MARK.core[2]}" height="${MARK.core[3]}" rx="${MARK.r}" class="mark-core"/></svg>`;
 
 function pageCss(manual, meta) {
   const footerLeft = `Versão ${brDate(meta.date)} · ${meta.hash}`;

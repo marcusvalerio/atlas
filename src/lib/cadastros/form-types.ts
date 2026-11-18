@@ -23,8 +23,6 @@ export type FormField = {
   min?: number;
   step?: number;
   disabledOnEdit?: boolean;
-  /** Código (SKU, NCM, código de barras): digitado em Geist Mono. */
-  mono?: boolean;
   /** Consulta assistida: "ncm" busca na tabela oficial de NCM. */
   lookup?: "ncm";
 };

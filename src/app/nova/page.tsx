@@ -19,35 +19,11 @@ export const metadata: Metadata = {
 
 const Mark = () => (
   <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
-    <circle cx="16" cy="2.4" r="1.35" fill="#f3f4f5" />
-    <circle cx="16" cy="5.8" r="1.35" fill="#f3f4f5" />
-    <circle cx="12.6" cy="9.2" r="1.35" fill="#f3f4f5" />
-    <circle cx="16" cy="9.2" r="1.35" fill="#f3f4f5" />
-    <circle cx="19.4" cy="9.2" r="1.35" fill="#f3f4f5" />
-    <circle cx="9.2" cy="12.6" r="1.35" fill="#f3f4f5" />
-    <circle cx="12.6" cy="12.6" r="1.35" fill="#f3f4f5" />
-    <circle cx="16" cy="12.6" r="1.35" fill="#f3f4f5" />
-    <circle cx="19.4" cy="12.6" r="1.35" fill="#f3f4f5" />
-    <circle cx="22.8" cy="12.6" r="1.35" fill="#f3f4f5" />
-    <circle cx="2.4" cy="16" r="1.35" fill="#f3f4f5" />
-    <circle cx="5.8" cy="16" r="1.35" fill="#f3f4f5" />
-    <circle cx="9.2" cy="16" r="1.35" fill="#f3f4f5" />
-    <circle cx="12.6" cy="16" r="1.35" fill="#f3f4f5" />
-    <circle cx="16" cy="16" r="1.35" fill="#f3f4f5" />
-    <circle cx="19.4" cy="16" r="1.35" fill="#f3f4f5" />
-    <circle cx="22.8" cy="16" r="1.35" fill="#f3f4f5" />
-    <circle cx="26.2" cy="16" r="1.35" fill="#f3f4f5" />
-    <circle cx="29.6" cy="16" r="1.35" fill="#f3f4f5" />
-    <circle cx="9.2" cy="19.4" r="1.35" fill="#f3f4f5" />
-    <circle cx="12.6" cy="19.4" r="1.35" fill="#f3f4f5" />
-    <circle cx="16" cy="19.4" r="1.35" fill="#f3f4f5" />
-    <circle cx="19.4" cy="19.4" r="1.35" fill="#f3f4f5" />
-    <circle cx="22.8" cy="19.4" r="1.35" fill="#f3f4f5" />
-    <circle cx="12.6" cy="22.8" r="1.35" fill="#f3f4f5" />
-    <circle cx="16" cy="22.8" r="1.35" fill="#f3f4f5" />
-    <circle cx="19.4" cy="22.8" r="1.35" fill="#f3f4f5" />
-    <circle cx="16" cy="26.2" r="1.35" fill="#f3f4f5" />
-    <circle cx="16" cy="29.6" r="1.35" fill="#f3f4f5" />
+    <rect x="3" y="3" width="16" height="8" rx="1.4" fill="#f3f4f5" />
+    <rect x="21" y="3" width="8" height="16" rx="1.4" fill="#f3f4f5" />
+    <rect x="13" y="21" width="16" height="8" rx="1.4" fill="#f3f4f5" />
+    <rect x="3" y="13" width="8" height="16" rx="1.4" fill="#f3f4f5" />
+    <rect x="13" y="13" width="6" height="6" rx="1.4" fill="#ff9408" />
   </svg>
 );
 

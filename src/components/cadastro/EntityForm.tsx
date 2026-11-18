@@ -59,7 +59,6 @@ function FieldControl({
   return (
     <Input
       type={field.type}
-      className={field.mono ? "code" : undefined}
       value={(value as string | number) ?? ""}
       placeholder={field.placeholder}
       step={field.step}

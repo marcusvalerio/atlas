@@ -33,24 +33,24 @@ describe("identidade ATLAS.ERP", () => {
     assert.equal(PRODUCT_CREDIT, "Criado por Marcus Valério");
   });
 
-  test("símbolo \"Estrela\": a mesma geometria no app, na landing, no favicon e nos manuais", () => {
-    const { dots, radius } = BRAND_MARK;
-    assert.ok(dots.length >= 20, "estrela de pontos");
-    const circles = dots.map(([x, y]) => `cx="${x}" cy="${y}" r="${radius}"`);
+  test("símbolo \"Núcleo\": a mesma geometria no app, na landing, no favicon e nos manuais", () => {
+    const { modules, core, radius } = BRAND_MARK;
+    const rects = [...modules, core].map(([x, y, w, h]) => `x="${x}" y="${y}" width="${w}" height="${h}" rx="${radius}"`);
     // Landing e manuais (capa dos PDFs): os geradores declaram a mesma geometria.
-    const decl = `dots: [${dots.map((d) => `[${d.join(", ")}]`).join(", ")}], r: ${radius}`;
+    const decl = `modules: [${modules.map((m) => `[${m.join(", ")}]`).join(", ")}], core: [${core.join(", ")}], r: ${radius}`;
     for (const gen of ["scripts/build-landing.mjs", "scripts/build-manuals.mjs"]) {
-      assert.ok(read(gen).includes(decl), gen);
+      const src = read(gen);
+      assert.ok(src.includes(decl), gen);
+      assert.doesNotMatch(src, /x="7" y="6\.5"/, `${gen}: três barras antigas`);
     }
-    // Favicon do app e landing estática: todos os pontos.
+    // Favicon do app e página gerada: os cinco retângulos, com o centro em fogo.
     const icon = read("src/app/icon.svg");
+    for (const r of rects) assert.ok(icon.includes(r), `icon.svg: ${r}`);
+    assert.match(icon, /x="13" y="13" width="6" height="6" rx="1.4" fill="#ff9408"/);
     const html = read("public/landing/index.html");
-    for (const c of circles) {
-      assert.ok(icon.includes(c), `icon.svg: ${c}`);
-      assert.ok(html.includes(c), `index.html: ${c}`);
-    }
-    // O símbolo antigo ("Núcleo") não volta.
-    assert.doesNotMatch(icon + html + read("src/components/shell/Brand.tsx"), /x="13" y="13" width="6" height="6"/);
+    for (const r of rects) assert.ok(html.includes(r), `index.html: ${r}`);
+    // As três barras antigas não voltam.
+    assert.doesNotMatch(read("src/components/shell/Brand.tsx") + icon, /mark-bar|x="7" y="6.5"/);
   });
 
   test("versão do build: commit curto da Vercel ou 'local'", () => {

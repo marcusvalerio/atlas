@@ -45,7 +45,7 @@ export function cnhAlertaTexto(validadeCnh: string): string {
 // PRODUTOS
 export const produtoColumns: ColumnConfig[] = [
   { key: "codigo", label: "Código" },
-  { key: "sku", label: "SKU", mono: true },
+  { key: "sku", label: "SKU" },
   { key: "produto", label: "Produto" },
   { key: "categoria", label: "Categoria" },
   { key: "unidade", label: "Unidade", align: "center" },
