@@ -154,6 +154,7 @@ export const ERP_NAV: NavSection[] = [
       { label: "Movimentações", href: "/app/logistica/movimentacoes", permission: "stock.view" },
       { label: "Transferências", href: "/app/logistica/transferencias", permission: "stock.view" },
       { label: "Inventário", href: "/app/logistica/inventario", permission: "stock.view", keywords: ["contagem"] },
+      { label: "Indicadores de estoque", href: "/app/logistica/indicadores", permission: "stock.view", keywords: ["kpi", "ruptura", "cobertura", "giro", "obsolescência", "avarias"] },
       { label: "Endereçamento", href: "/app/logistica/enderecamento", permission: "warehouse_locations.read" },
       { label: "Almoxarifado", href: "/app/logistica/almoxarifado", permission: "stock.view", keywords: ["requisição"] },
       { label: "Picking", href: "/app/logistica/picking", permission: "pick_lists.view", keywords: ["separação"] },

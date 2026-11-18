@@ -10,6 +10,7 @@ import { getAuthContext, hasPermission } from "@/lib/auth/context";
 import { ApiError, forbiddenError, notFoundError, unauthorizedError, validationError, translatePostgresError } from "@/lib/database/errors";
 import { jsonError } from "./response";
 import { ACCURACY_TARGET, computeCountAccuracy, type CountItemInput } from "@/lib/inventory/accuracy";
+import { computeInventoryKpis, CONSUMPTION_TYPES, DEFAULT_SETTINGS, type ProductInput } from "@/lib/inventory/kpis";
 import {
   receiveStockSchema,
   issueStockSchema,
@@ -912,6 +913,117 @@ export async function getStockCountAccuracy(request: NextRequest) {
       };
     });
     return NextResponse.json({ success: true, data: { target: ACCURACY_TARGET, counts: result } });
+  } catch (error) {
+    return jsonError(error);
+  }
+}
+
+// ------------------------------------------------- Indicadores de estoque (9 KPIs)
+// Calculados no servidor a partir do que já está gravado (lib/inventory/kpis).
+// Sem mudança de banco. Parâmetros opcionais: ?dias=90&taxa=24&seguranca=5&obsoleto=365
+export async function getInventoryKpis(request: NextRequest) {
+  try {
+    const { companyId } = await requireStockAccess("stock.view");
+    const sp = new URL(request.url).searchParams;
+    const num = (key: string, fallback: number, min: number, max: number) => {
+      const v = Number(sp.get(key));
+      return Number.isFinite(v) && sp.get(key) !== null && sp.get(key) !== "" ? Math.min(Math.max(v, min), max) : fallback;
+    };
+    const settings = {
+      periodDays: Math.round(num("dias", DEFAULT_SETTINGS.periodDays, 7, 365)),
+      carryingRate: num("taxa", DEFAULT_SETTINGS.carryingRate * 100, 0, 100) / 100,
+      safetyDays: num("seguranca", DEFAULT_SETTINGS.safetyDays, 0, 90),
+      obsoleteDays: Math.round(num("obsoleto", DEFAULT_SETTINGS.obsoleteDays, 30, 1095)),
+    };
+    const now = new Date();
+    const start = new Date(now.getTime() - settings.periodDays * 86_400_000);
+    const obsoleteStart = new Date(now.getTime() - settings.obsoleteDays * 86_400_000);
+    const admin = createAdminClient();
+
+    // Lê todas as páginas (o PostgREST corta em 1.000 linhas por chamada).
+    async function all<T>(build: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }>): Promise<T[]> {
+      const out: T[] = [];
+      for (let from = 0; from < 50_000; from += 1000) {
+        const { data, error } = await build(from, from + 999);
+        if (error) throw translatePostgresError(error as never);
+        const rows = (data ?? []) as T[];
+        out.push(...rows);
+        if (rows.length < 1000) break;
+      }
+      return out;
+    }
+
+    type Row = Record<string, unknown>;
+    const [products, suppliers, balances, movements, outs, receiptItems] = await Promise.all([
+      all<Row>((a, b) => admin.from("products").select("id, code, name, unit, minimum_stock, maximum_stock, reorder_point").eq("company_id", companyId).eq("status", "active").order("id").range(a, b)),
+      all<Row>((a, b) => admin.from("product_suppliers").select("product_id, lead_time_days, is_preferred").eq("company_id", companyId).eq("status", "active").order("id").range(a, b)),
+      all<Row>((a, b) => admin.from("product_cost_balances").select("product_id, quantity, total_value").eq("company_id", companyId).order("id").range(a, b)),
+      all<Row>((a, b) => admin.from("cost_movements").select("product_id, movement_type, quantity, total_cost, created_at").eq("company_id", companyId).gte("created_at", start.toISOString()).order("id").range(a, b)),
+      all<Row>((a, b) => admin.from("stock_movements").select("product_id, created_at").eq("company_id", companyId).in("movement_type", [...CONSUMPTION_TYPES]).gte("created_at", obsoleteStart.toISOString()).order("id").range(a, b)),
+      all<Row>((a, b) => admin.from("purchase_receipt_items").select("quantity_received, rejected_quantity, divergence_type").eq("company_id", companyId).gte("created_at", start.toISOString()).order("id").range(a, b)),
+    ]);
+
+    // Lead time: fornecedor preferencial; senão, o menor prazo informado.
+    const lead = new Map<string, { days: number; preferred: boolean }>();
+    for (const r of suppliers) {
+      if (r.lead_time_days === null || r.lead_time_days === undefined) continue;
+      const days = Number(r.lead_time_days);
+      const pid = r.product_id as string;
+      const cur = lead.get(pid);
+      const preferred = Boolean(r.is_preferred);
+      if (!cur || (preferred && !cur.preferred) || (preferred === cur.preferred && days < cur.days)) lead.set(pid, { days, preferred });
+    }
+
+    const bal = new Map<string, { quantity: number; value: number }>();
+    for (const b of balances) {
+      const pid = b.product_id as string;
+      const cur = bal.get(pid) ?? { quantity: 0, value: 0 };
+      cur.quantity += Number(b.quantity) || 0;
+      cur.value += Number(b.total_value) || 0;
+      bal.set(pid, cur);
+    }
+
+    const lastOut = new Map<string, string>();
+    for (const m of outs) {
+      const pid = m.product_id as string;
+      const at = m.created_at as string;
+      if (!lastOut.has(pid) || at > lastOut.get(pid)!) lastOut.set(pid, at);
+    }
+
+    let received = 0;
+    let damaged = 0;
+    for (const r of receiptItems) {
+      received += Number(r.quantity_received) || 0;
+      if (r.divergence_type === "quality") damaged += Number(r.rejected_quantity) || 0;
+    }
+
+    const productInputs: ProductInput[] = products.map((p) => ({
+      id: p.id as string,
+      label: [p.code, p.name].filter(Boolean).join(" · "),
+      unit: (p.unit as string) ?? "",
+      minimum: Number(p.minimum_stock) || 0,
+      maximum: Number(p.maximum_stock) || 0,
+      reorderPoint: Number(p.reorder_point) || 0,
+      leadTime: lead.get(p.id as string)?.days ?? null,
+    }));
+
+    const kpis = computeInventoryKpis({
+      settings,
+      period: { start: start.toISOString().slice(0, 10), end: now.toISOString().slice(0, 10) },
+      products: productInputs,
+      balances: bal,
+      movements: movements.map((m) => ({
+        productId: m.product_id as string,
+        type: m.movement_type as string,
+        quantity: Number(m.quantity) || 0,
+        totalCost: Number(m.total_cost) || 0,
+        createdAt: m.created_at as string,
+      })),
+      lastOut,
+      receipts: { received, damaged },
+      now,
+    });
+    return NextResponse.json({ success: true, data: kpis });
   } catch (error) {
     return jsonError(error);
   }
