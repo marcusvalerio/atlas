@@ -42,8 +42,7 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (!signedIn && !isPublicPath(pathname)) {
     const url = request.nextUrl.clone();
-    // O Beta tem o próprio login, na identidade nova (mesma conta e banco).
-    url.pathname = pathname === "/beta" || pathname.startsWith("/beta/") ? "/beta-entrar" : "/login";
+    url.pathname = "/login";
     url.searchParams.set("next", pathname);
     return redirect(url);
   }

@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, ExternalLink, LayoutGrid, LogOut, Menu, Moon, Search, Sun, X } from "lucide-react";
-import { AtlasIcon } from "@/components/brand/GalaxyMark";
+import { ChevronDown, ExternalLink, LayoutGrid, LogOut, Menu, Search, Sun, X } from "lucide-react";
 import { SessionProvider, useSession } from "@/components/shell/SessionProvider";
 import { CommandMenu } from "@/components/shell/CommandMenu";
 import { LogoutForm } from "@/components/auth/LogoutButton";
@@ -57,41 +56,11 @@ function SidebarNav({ sections, onNavigate }: { sections: NavSection[]; onNaviga
 function Brand() {
   return (
     <Link href="/beta" className="flex items-center gap-2.5 px-2">
-      <AtlasIcon size={34} />
-      <span className="flex flex-col leading-tight">
-        <span className="bx-title text-[21px]">atlas</span>
-        <span className="text-[11px] font-semibold tracking-wide text-[var(--bx-gold-ink)]">BETA</span>
-      </span>
+      <span aria-hidden className="grid size-8 place-items-center rounded-xl bg-[var(--bx-ink)] text-[13px] font-bold text-white">A</span>
+      <span className="bx-title text-[15px]">Atlas ERP</span>
+      <span className="bx-aurora rounded-full px-2 py-0.5 text-[10.5px] font-semibold tracking-wide">Beta</span>
     </Link>
   );
-}
-
-const THEME_KEY = "atlas-beta-theme";
-
-/** Claro por padrão; o escuro (grafite) é escolha do usuário e fica salvo neste navegador. */
-function useBetaTheme(): [boolean, () => void] {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    let saved: string | null = null;
-    try {
-      saved = localStorage.getItem(THEME_KEY);
-    } catch {}
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDark(saved === "dark");
-  }, []);
-  useEffect(() => {
-    const root = document.querySelector(".beta-root");
-    if (dark) root?.setAttribute("data-theme", "dark");
-    else root?.removeAttribute("data-theme");
-  }, [dark]);
-  const toggle = () =>
-    setDark((d) => {
-      try {
-        localStorage.setItem(THEME_KEY, d ? "light" : "dark");
-      } catch {}
-      return !d;
-    });
-  return [dark, toggle];
 }
 
 function Frame({ children }: { children: ReactNode }) {
@@ -99,7 +68,6 @@ function Frame({ children }: { children: ReactNode }) {
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState(false);
   const pathname = usePathname();
-  const [dark, toggleTheme] = useBetaTheme();
   const screens = data?.tenant?.screens ?? null;
   const sections = useMemo(() => visibleSections(ERP_NAV, can, screens), [can, screens]);
 
@@ -152,7 +120,7 @@ function Frame({ children }: { children: ReactNode }) {
 
       {menu && (
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-          <button type="button" aria-label="Fechar menu" className="absolute inset-0 bg-[var(--bx-scrim)]" onClick={() => setMenu(false)} />
+          <button type="button" aria-label="Fechar menu" className="absolute inset-0 bg-[rgb(27_43_27/0.35)]" onClick={() => setMenu(false)} />
           <div className="absolute inset-y-0 left-0 w-[min(18rem,86vw)] bg-[var(--bx-bg)] pt-[env(safe-area-inset-top,0px)] shadow-xl">
             <button type="button" aria-label="Fechar menu" className="bx-btn bx-btn-ghost absolute top-3 right-3 size-9 p-0" onClick={() => setMenu(false)}>
               <X size={18} />
@@ -163,7 +131,7 @@ function Frame({ children }: { children: ReactNode }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 bg-[var(--bx-header)] px-4 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 backdrop-blur sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 flex items-center gap-3 bg-[rgb(238_242_243/0.85)] px-4 pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 backdrop-blur sm:px-6 lg:px-8">
           <button type="button" aria-label="Abrir menu" className="bx-btn bx-btn-secondary size-10 p-0 lg:hidden" onClick={() => setMenu(true)}>
             <Menu size={18} />
           </button>
@@ -177,14 +145,11 @@ function Frame({ children }: { children: ReactNode }) {
             <kbd className="bx-meta hidden sm:inline">⌘K</kbd>
           </button>
           <div className="ml-auto flex items-center gap-3">
-            <button type="button" onClick={toggleTheme} aria-label={dark ? "Usar tema claro" : "Usar tema escuro"} aria-pressed={dark} className="bx-btn bx-btn-secondary size-10 p-0">
-              {dark ? <Sun size={17} aria-hidden /> : <Moon size={17} aria-hidden />}
-            </button>
             <div className="hidden text-right sm:block">
               <p className="text-[13px] font-semibold text-[var(--bx-ink)]">{name}</p>
               <p className="bx-meta">{tenant.company.name}</p>
             </div>
-            <span aria-hidden className="grid size-10 place-items-center rounded-full bg-[var(--bx-ink)] text-[13px] font-semibold text-[var(--bx-bg)]">
+            <span aria-hidden className="grid size-10 place-items-center rounded-full bg-[var(--bx-havana)] text-[13px] font-semibold text-[var(--bx-ink)]">
               {initials(name)}
             </span>
           </div>
