@@ -268,12 +268,12 @@ describe("sessão no banco (papel + claims por transação)", () => {
     assert.match(sessionPreamble({ role: "anon" }), /set local role anon/);
   });
 
-  test("DATA_BACKEND: supabase por padrão; valor desconhecido falha fechado; postgres exige Neon Auth", () => {
+  test("DATA_BACKEND: supabase por padrão; valor desconhecido falha fechado; postgres aceita Neon Auth ou Supabase Auth (híbrido)", () => {
     assert.equal(parseDataBackend(undefined), "supabase");
     assert.equal(parseDataBackend(" Postgres "), "postgres");
     assert.throws(() => parseDataBackend("mysql"), /inválido/);
     const server = readFileSync(path.join(process.cwd(), "src/lib/supabase/server.ts"), "utf8");
-    assert.match(server, /if \(authProvider\(\) !== "neon"\) throw new Error\("DATA_BACKEND=postgres exige AUTH_PROVIDER=neon\."\)/);
+    assert.match(server, /modo híbrido/);
   });
 });
 

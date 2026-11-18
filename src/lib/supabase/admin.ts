@@ -3,7 +3,8 @@ import "server-only";
 import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseServiceRoleKey, getSupabaseUrl } from "./env";
 import { dataBackend } from "@/lib/database/backend";
-import { createPgDataClient } from "@/lib/database/pg/client";
+import { createPgDataClient, mirrorAuthUser } from "@/lib/database/pg/client";
+import { authProvider } from "@/lib/auth/provider";
 
 let cached: SupabaseClient | null = null;
 
@@ -28,11 +29,36 @@ export function createAdminClient(): SupabaseClient {
   if (cached) return cached;
   if (dataBackend() === "postgres") {
     // PostgreSQL direto: papel service_role (BYPASSRLS), como a service key.
-    cached = createPgDataClient({ role: "service_role" }) as unknown as SupabaseClient;
+    const data = createPgDataClient({ role: "service_role" });
+    if (authProvider() === "supabase") {
+      // Modo híbrido: logins e senhas no Supabase Auth, dados no Neon. Toda conta
+      // criada no Supabase é espelhada em auth.users do Neon (mesmo id), que é o
+      // alvo das FKs (users.auth_user_id, platform_members…).
+      const authAdmin = supabaseServiceClient().auth.admin;
+      type Created = { data: { user: { id: string; email?: string | null; email_confirmed_at?: string | null; app_metadata?: unknown; user_metadata?: unknown } | null }; error: unknown };
+      const mirrored = <A extends unknown[]>(fn: (...args: A) => Promise<Created>) => async (...args: A) => {
+        const result = await fn(...args);
+        if (!result.error && result.data.user) await mirrorAuthUser(result.data.user);
+        return result;
+      };
+      const admin = Object.assign(Object.create(authAdmin), {
+        createUser: mirrored(authAdmin.createUser.bind(authAdmin) as never),
+        inviteUserByEmail: mirrored(authAdmin.inviteUserByEmail.bind(authAdmin) as never),
+      });
+      cached = { ...data, auth: { ...supabaseServiceClient().auth, admin } } as unknown as SupabaseClient;
+      return cached;
+    }
+    cached = data as unknown as SupabaseClient;
     return cached;
   }
-  cached = createSupabaseJsClient(getSupabaseUrl(), getSupabaseServiceRoleKey(), {
+  cached = supabaseServiceClient();
+  return cached;
+}
+
+let service: SupabaseClient | null = null;
+function supabaseServiceClient(): SupabaseClient {
+  service ??= createSupabaseJsClient(getSupabaseUrl(), getSupabaseServiceRoleKey(), {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  return cached;
+  return service;
 }

@@ -8,6 +8,7 @@ import { authProvider } from "@/lib/auth/provider";
 import { currentNeonDatabaseToken, resolveCurrentNeonSession } from "@/lib/auth/neon/request";
 import { dataBackend } from "@/lib/database/backend";
 import { createPgDataClient } from "@/lib/database/pg/client";
+import { readTemporaryMeta } from "@/lib/auth/temporary-password";
 
 /**
  * Cliente Supabase server-side autenticado como o usuário da sessão,
@@ -17,6 +18,8 @@ import { createPgDataClient } from "@/lib/database/pg/client";
  *
  * O provedor de identidade decide só COMO o PostgREST reconhece o usuário:
  *   AUTH_PROVIDER=supabase → sessão do Supabase Auth em cookies (@supabase/ssr);
+ * Com DATA_BACKEND=postgres os dados vêm do PostgreSQL (Neon) e o login pode
+ * ser do Neon Auth ou do Supabase Auth (modo híbrido).
  *   AUTH_PROVIDER=neon     → token curto emitido pela ponte (sub = auth_user_id)
  *                            no cabeçalho Authorization; sem sessão, cliente anônimo.
  * Em ambos, auth.uid() no banco é o mesmo UUID do login no ATLAS.ERP.
@@ -25,9 +28,16 @@ export async function createClient(): Promise<SupabaseClient> {
   if (dataBackend() === "postgres") {
     // PostgreSQL direto (Neon): mesmo usuário, mesmo auth.uid(), sem PostgREST.
     // Só com Neon Auth — sem Supabase não há sessão do Supabase Auth para ler.
-    if (authProvider() !== "neon") throw new Error("DATA_BACKEND=postgres exige AUTH_PROVIDER=neon.");
-    const resolved = await resolveCurrentNeonSession();
-    const ctx = resolved.status === "ok" ? { role: "authenticated" as const, sub: resolved.identity.authUserId, email: resolved.identity.email } : { role: "anon" as const };
+    // Login no Neon Auth ou, no modo híbrido, no Supabase Auth (dados no Neon,
+    // senhas continuam no Supabase): em ambos, o mesmo auth_user_id vira auth.uid().
+    if (authProvider() === "neon") {
+      const resolved = await resolveCurrentNeonSession();
+      const ctx = resolved.status === "ok" ? { role: "authenticated" as const, sub: resolved.identity.authUserId, email: resolved.identity.email } : { role: "anon" as const };
+      return createPgDataClient(ctx) as unknown as SupabaseClient;
+    }
+    const { data } = await (await createSupabaseSessionClient()).auth.getUser();
+    const user = data.user && !readTemporaryMeta(data.user.app_metadata) ? data.user : null;
+    const ctx = user ? { role: "authenticated" as const, sub: user.id, email: user.email ?? undefined } : { role: "anon" as const };
     return createPgDataClient(ctx) as unknown as SupabaseClient;
   }
   if (authProvider() === "neon") {

@@ -345,7 +345,7 @@ describe("invariantes da integração no código", () => {
     assert.deepEqual(offenders, []);
   });
   test("a escolha do provedor fica na camada de autenticação (sem if espalhado)", () => {
-    const allowed = /^src\/(lib\/auth\/|proxy\.ts$|lib\/supabase\/server\.ts$|app\/auth\/callback\/route\.ts$)/;
+    const allowed = /^src\/(lib\/auth\/|proxy\.ts$|lib\/supabase\/(server|admin)\.ts$|app\/auth\/callback\/route\.ts$)/;
     const code = (t: string) => t.replace(/\/\/.*$/gm, "");
     const offenders = all.filter(({ file, text }) => /authProvider\(|isNeonAuth\(|env\.(NEXT_PUBLIC_)?AUTH_PROVIDER/.test(code(text)) && !allowed.test(file)).map((f) => f.file);
     assert.deepEqual(offenders, []);

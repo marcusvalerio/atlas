@@ -174,3 +174,18 @@ export function createPgDataClient(ctx: DbContext) {
 }
 
 export type PgDataClient = ReturnType<typeof createPgDataClient>;
+
+/**
+ * Modo híbrido (login no Supabase Auth, dados no Neon): copia a conta recém-criada
+ * no Supabase para auth.users do Neon com o MESMO id, sem senha.
+ */
+export async function mirrorAuthUser(user: { id: string; email?: string | null; email_confirmed_at?: string | null; app_metadata?: unknown; user_metadata?: unknown }): Promise<void> {
+  if (!UUID.test(user.id)) throw new Error("auth_user_id inválido.");
+  await sessionRunner({ role: "service_role" })((exec) =>
+    exec(
+      `insert into auth.users (id, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data) values ($1::uuid, lower($2), $3::timestamptz, $4::jsonb, $5::jsonb)
+       on conflict (id) do update set email = excluded.email, email_confirmed_at = coalesce(excluded.email_confirmed_at, auth.users.email_confirmed_at), updated_at = now()`,
+      [user.id, user.email ?? null, user.email_confirmed_at ?? null, JSON.stringify(user.app_metadata ?? {}), JSON.stringify(user.user_metadata ?? {})]
+    )
+  );
+}
