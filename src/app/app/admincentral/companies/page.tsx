@@ -103,8 +103,7 @@ function CompanyGovernance({ company, onChanged }: { company: PlatformCompany; o
   const canContract = canPlatform("platform.company_modules.manage");
   const modules = useCached<PlatformCompanyModule[]>(`/api/platform/companies/${company.company_id}/modules`, canPlatform("platform.company_modules.view"));
   const [status, setStatus] = useState<LifecycleStatus>(company.lifecycle_status);
-  const canKind = canPlatform("platform.companies.create");
-  const [kind, setKind] = useState<"business" | "study">(company.company_kind ?? "business");
+  const kind: "business" | "study" = company.company_kind ?? "business";
   const [confirmKind, setConfirmKind] = useState(false);
   const [notes, setNotes] = useState("");
   const [confirm, setConfirm] = useState(false);
@@ -164,27 +163,6 @@ function CompanyGovernance({ company, onChanged }: { company: PlatformCompany; o
       </dl>
 
       <CompanyAdminSection companyId={company.company_id} />
-
-      <section className="flex flex-col gap-3 border-t border-border pt-4">
-        <h3 className="text-sm font-semibold">Tipo</h3>
-        {company.parent_company_id ? (
-          <p className="text-sm text-muted-foreground">Grupo da turma <strong className="code">{companyRef(company.parent_company_id)}</strong>. Grupos não mudam de tipo.</p>
-        ) : canKind ? (
-          <>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <FormField label="Tipo da empresa" help={kind === "study" ? "Turma: o administrador (professor) cria grupos isolados em Administração → Grupos da turma." : "Empresa comum."}>
-                <Select value={kind} onValueChange={(v) => setKind((v || "business") as "business" | "study")} options={[{ value: "business", label: "Empresa" }, { value: "study", label: "Estudo (turma)" }]} />
-              </FormField>
-            </div>
-            {company.company_kind === "study" && company.study_groups > 0 && <p className="text-xs text-muted-foreground">{company.study_groups} {company.study_groups === 1 ? "grupo criado" : "grupos criados"}: a turma não pode voltar a ser empresa.</p>}
-            <div className="flex justify-end">
-              <Button size="sm" disabled={kind === company.company_kind} onClick={() => setConfirmKind(true)}>Aplicar tipo</Button>
-            </div>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">{company.company_kind === "study" ? "Estudo (turma)" : "Empresa"}</p>
-        )}
-      </section>
 
       <section className="flex flex-col gap-3 border-t border-border pt-4">
         <h3 className="text-sm font-semibold">Ciclo de vida</h3>
